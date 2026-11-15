@@ -2,7 +2,7 @@
   "name": "live-wallpaper-studio",
   "displayName": "Live Wallpaper Studio",
   "description": "%description%",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "publisher": "derekhoang",
   "license": "MIT",
   "icon": "media/icon.png",
