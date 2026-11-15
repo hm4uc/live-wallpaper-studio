@@ -187,13 +187,17 @@
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
     "package": "npm run typecheck && npm run build && vsce package --no-dependencies",
-    "vscode:uninstall": "node ./dist/uninstall.js"
+    "vscode:uninstall": "node ./dist/uninstall.js",
+    "release:patch": "npm version patch -m \"Release v%s\" && git push --follow-tags",
+    "release:minor": "npm version minor -m \"Release v%s\" && git push --follow-tags",
+    "release:major": "npm version major -m \"Release v%s\" && git push --follow-tags"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/vscode": "1.90.0",
-    "@vscode/vsce": "^3.2.0",
+    "@vscode/vsce": "^4.1.1",
     "esbuild": "^0.25.0",
+    "ovsx": "^1.4.0",
     "typescript": "^5.6.0",
     "vitest": "^3.2.0"
   },
