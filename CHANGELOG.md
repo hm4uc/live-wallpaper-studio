@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Phát hành tự động lên Open VSX (Antigravity IDE) và VS Code Marketplace qua GitHub Actions.
+- Kiểm thử tự động trên Windows, macOS, Linux.
+
 ## 1.0.0
 
 - Live Wallpaper Studio cho VS Code & Antigravity IDE.
