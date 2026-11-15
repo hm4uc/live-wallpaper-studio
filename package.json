@@ -2,7 +2,7 @@
   "name": "live-wallpaper-studio",
   "displayName": "Live Wallpaper Studio",
   "description": "Wallpapers, GIFs, videos & animated pixel themes for VS Code and Antigravity IDE — visual picker, instant switching, auto-rotation. Ảnh nền / GIF / video cho VS Code & Antigravity IDE.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "derekhoang",
   "license": "MIT",
   "icon": "media/icon.png",
