@@ -105,9 +105,13 @@ body.ws-behind .monaco-workbench{background-color:transparent !important;}
     'tab-inactiveBackground', 'tab-unfocusedActiveBackground', 'tab-unfocusedInactiveBackground', 'editorGroupHeader-tabsBackground',
     'editorGroupHeader-noTabsBackground', 'minimap-background', 'auxiliaryBar-background', 'welcomePage-background',
     'notebook-editorBackground', 'banner-background',
+    // VS Code "modern UI" (floating panels): the shell behind the floating cards.
+    'modernUI-shellBackground',
   ];
-  /** Painted inside an already-tinted part (editor content) → fully transparent. */
-  const NESTED_VARS = new Set(['editor-background', 'editorGutter-background']);
+  /** Non-`--vscode-` variables VS Code resolves on the workbench element. */
+  const RAW_VARS = ['--modern-ui-shell-background'];
+  /** Painted inside / underneath an already-tinted part → fully transparent. */
+  const NESTED_VARS = new Set(['editor-background', 'editorGutter-background', 'modernUI-shellBackground', '--modern-ui-shell-background']);
   let frameKey = '';
   function parseColor(c: string): [number, number, number, number] | null {
     c = c.trim();
@@ -188,10 +192,16 @@ body.ws-behind .monaco-workbench{background-color:transparent !important;}
       const a = NESTED_VARS.has(v) ? 0 : col[3] * display.frameOpacity;
       rules.push(`--vscode-${v}:rgba(${col[0]},${col[1]},${col[2]},${a.toFixed(3)});`);
     }
+    for (const v of RAW_VARS) {
+      const col = parseColor(cs.getPropertyValue(v));
+      // set inline on the workbench element by VS Code → only !important wins
+      if (col) rules.push(`${v}:rgba(${col[0]},${col[1]},${col[2]},${NESTED_VARS.has(v) ? 0 : (col[3] * display.frameOpacity).toFixed(3)}) !important;`);
+    }
     root.style.backgroundColor = base ?? '#1e1e1e';
     // The minimap canvas paints an opaque background → fade it a bit. The terminal is
     // transparent with the DOM renderer (the extension offers to switch GPU off for it).
     frameStyle.textContent = `.monaco-workbench.monaco-workbench{${rules.join('')}}
+body.ws-behind .monaco-workbench.modern-ui .monaco-pane-view .pane,body.ws-behind .monaco-workbench.modern-ui .monaco-pane-view .pane>.pane-header:not(:hover),body.ws-behind .monaco-workbench .part .monaco-list-rows{background-color:transparent !important;}
 body.ws-behind .monaco-workbench .minimap canvas{opacity:${Math.max(0.4, display.frameOpacity).toFixed(2)};}
 body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-workbench .xterm .xterm-scrollable-element{background-color:transparent !important;}`;
   }

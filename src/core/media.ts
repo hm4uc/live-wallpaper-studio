@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { isSupported, uniqueTarget } from './library';
+import { t } from '../shared/i18n';
 
 export function ffmpegCandidates(configured?: string, platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env): string[] {
   const list: (string | undefined)[] = [configured, 'ffmpeg'];
@@ -87,13 +88,13 @@ export function fileNameFromUrl(url: string, contentType: string | null): string
 /** Download a remote image/video into the library. https/http only. */
 export async function downloadToLibrary(url: string, dir: string): Promise<string> {
   const u = new URL(url);
-  if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('Chỉ hỗ trợ link http(s)');
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error(t('Only http(s) links are supported'));
   const res = await fetch(u, { redirect: 'follow' });
-  if (!res.ok || !res.body) throw new Error(`Tải thất bại: HTTP ${res.status}`);
+  if (!res.ok || !res.body) throw new Error(t('Download failed: HTTP {0}', res.status));
   const len = Number(res.headers.get('content-length') || 0);
-  if (len > MAX_DOWNLOAD) throw new Error('File quá lớn (> 300MB)');
+  if (len > MAX_DOWNLOAD) throw new Error(t('File too large (> 300 MB)'));
   const name = fileNameFromUrl(res.url || url, res.headers.get('content-type'));
-  if (!isSupported(name)) throw new Error('Link không phải ảnh/GIF/video được hỗ trợ (' + (res.headers.get('content-type') ?? '?') + ')');
+  if (!isSupported(name)) throw new Error(t('The link is not a supported image / GIF / video ({0})', res.headers.get('content-type') ?? '?'));
   fs.mkdirSync(dir, { recursive: true });
   const target = uniqueTarget(dir, name);
   const chunks: Uint8Array[] = [];
@@ -103,7 +104,7 @@ export async function downloadToLibrary(url: string, dir: string): Promise<strin
     const { done, value } = await reader.read();
     if (done) break;
     total += value.byteLength;
-    if (total > MAX_DOWNLOAD) throw new Error('File quá lớn (> 300MB)');
+    if (total > MAX_DOWNLOAD) throw new Error(t('File too large (> 300 MB)'));
     chunks.push(value);
   }
   fs.writeFileSync(target, Buffer.concat(chunks));

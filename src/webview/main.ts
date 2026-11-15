@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
 import { THEMES, getTheme, type ThemeInstance } from '../shared/themes';
 import { MSG_TAG, type WallpaperItem, type WallpaperState } from '../shared/types';
+import { setLang, t } from '../shared/i18n';
 
 declare function acquireVsCodeApi(): { postMessage(m: unknown): void; getState(): any; setState(s: any): void };
 const vscode = acquireVsCodeApi();
@@ -85,20 +86,21 @@ function icon(d: string): SVGSVGElement {
   return svg;
 }
 
-const KIND_LABEL: Record<string, string> = { image: 'Ảnh', gif: 'GIF', video: 'Video', theme: 'Pixel' };
+const KIND_LABEL: Record<string, string> = { image: 'Image', gif: 'GIF', video: 'Video', theme: 'Pixel' };
 
 // ------------------------------------------------------------------ layout skeleton
 const app = document.getElementById('app')!;
+setLang(app.dataset.lang === 'vi' ? 'vi' : 'en');
 const exts = (app.dataset.exts ?? '').split(',');
 const banner = h('div', { class: 'banner', hidden: true });
-const urlInput = h('input', { class: 'url', type: 'url', placeholder: 'Dán link ảnh / GIF / video rồi Enter…', hidden: true }) as HTMLInputElement;
-const search = h('input', { class: 'search', type: 'search', placeholder: 'Tìm…', 'aria-label': 'Tìm ảnh' }) as HTMLInputElement;
+const urlInput = h('input', { class: 'url', type: 'url', placeholder: t('Paste an image / GIF / video link, then Enter…'), hidden: true }) as HTMLInputElement;
+const search = h('input', { class: 'search', type: 'search', placeholder: t('Search…'), 'aria-label': t('Search wallpapers') }) as HTMLInputElement;
 const chips = h('div', { class: 'chips', role: 'tablist' });
-const grid = h('div', { class: 'grid', role: 'listbox', tabindex: '0', 'aria-label': 'Danh sách ảnh nền' });
+const grid = h('div', { class: 'grid', role: 'listbox', tabindex: '0', 'aria-label': t('Wallpaper list') });
 const controls = h('div', { class: 'controls' });
 const countdown = h('span', { class: 'countdown' });
 const menu = h('div', { class: 'menu', hidden: true, role: 'menu' });
-const dropOverlay = h('div', { class: 'drop', hidden: true }, h('div', {}, 'Thả ảnh / GIF / video vào đây để thêm vào thư viện'));
+const dropOverlay = h('div', { class: 'drop', hidden: true }, h('div', {}, t('Drop images / GIFs / videos here to add them to the library')));
 const toast = h('div', { class: 'toast', hidden: true });
 
 app.append(
@@ -107,11 +109,11 @@ app.append(
     h('span', { class: 'title' }, 'Studio'),
     countdown,
     h('span', { class: 'spacer' }),
-    h('span', { class: 'hint' }, '← → chọn · ↵ áp dụng · esc đóng'),
-    h('button', { class: 'icon', title: 'Thêm ảnh / GIF / video', onclick: () => post({ type: 'command', command: 'wallpaperStudio.addFiles' }) }, icon('M12 5v14M5 12h14')),
-    h('button', { class: 'icon', title: 'Thêm từ URL', onclick: () => { urlInput.hidden = !urlInput.hidden; if (!urlInput.hidden) urlInput.focus(); } }, icon('M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1')),
-    h('button', { class: 'icon', title: 'Mở thư mục ảnh', onclick: () => post({ type: 'command', command: 'wallpaperStudio.openLibraryFolder' }) }, icon('M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z')),
-    h('button', { class: 'icon', title: 'Ảnh ngẫu nhiên', onclick: () => post({ type: 'command', command: 'wallpaperStudio.random' }) }, icon('M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5')),
+    h('span', { class: 'hint' }, t('← → choose · ↵ apply · esc close')),
+    h('button', { class: 'icon', title: t('Add image / GIF / video'), onclick: () => post({ type: 'command', command: 'wallpaperStudio.addFiles' }) }, icon('M12 5v14M5 12h14')),
+    h('button', { class: 'icon', title: t('Add from URL'), onclick: () => { urlInput.hidden = !urlInput.hidden; if (!urlInput.hidden) urlInput.focus(); } }, icon('M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1')),
+    h('button', { class: 'icon', title: t('Open wallpaper folder'), onclick: () => post({ type: 'command', command: 'wallpaperStudio.openLibraryFolder' }) }, icon('M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z')),
+    h('button', { class: 'icon', title: t('Random wallpaper'), onclick: () => post({ type: 'command', command: 'wallpaperStudio.random' }) }, icon('M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5')),
   ),
   banner,
   urlInput,
@@ -128,7 +130,7 @@ urlInput.addEventListener('keydown', (e) => {
     post({ type: 'addUrl', url: urlInput.value.trim() });
     urlInput.value = '';
     urlInput.hidden = true;
-    showToast('Đang tải…');
+    showToast(t('Downloading…'));
   } else if (e.key === 'Escape') {
     urlInput.hidden = true;
     grid.focus();
@@ -154,11 +156,11 @@ function showToast(text: string) {
 }
 
 // ------------------------------------------------------------------ filters
-const FILTERS: [string, string][] = [['all', 'Tất cả'], ['fav', '★ Yêu thích'], ['image', 'Ảnh'], ['gif', 'GIF'], ['video', 'Video'], ['theme', 'Pixel']];
+const FILTERS: [string, string][] = [['all', 'All'], ['fav', '★ Favorites'], ['image', 'Image'], ['gif', 'GIF'], ['video', 'Video'], ['theme', 'Pixel']];
 function renderChips() {
   chips.replaceChildren(
     ...FILTERS.map(([id, label]) =>
-      h('button', { class: 'chip' + (filter === id ? ' on' : ''), role: 'tab', 'aria-selected': String(filter === id), onclick: () => { filter = id; persist(); renderChips(); renderGrid(); } }, label),
+      h('button', { class: 'chip' + (filter === id ? ' on' : ''), role: 'tab', 'aria-selected': String(filter === id), onclick: () => { filter = id; persist(); renderChips(); renderGrid(); } }, t(label)),
     ),
   );
 }
@@ -258,11 +260,11 @@ function buildThumb(it: UiItem): HTMLElement {
   } else {
     box.append(h('img', { loading: 'lazy', decoding: 'async', alt: '', src: it.thumb }));
   }
-  box.append(h('span', { class: 'kind' }, KIND_LABEL[it.kind] ?? ''));
-  if (it.favorite) box.append(h('span', { class: 'fav', title: 'Yêu thích' }, '★'));
-  if (it.period) box.append(h('span', { class: 'period', title: it.period === 'day' ? 'Ban ngày' : 'Ban đêm' }, it.period === 'day' ? '☀' : '☾'));
-  if (S?.workspaceKey && S.state.workspaces[S.workspaceKey] === it.id) box.append(h('span', { class: 'ws', title: 'Ảnh riêng của project này' }, '⌂'));
-  if (it.heavy) box.append(h('span', { class: 'heavy', title: 'GIF độ phân giải lớn — chuột phải → Tối ưu sang MP4 để giảm CPU' }, '⚡'));
+  box.append(h('span', { class: 'kind' }, t(KIND_LABEL[it.kind] ?? '')));
+  if (it.favorite) box.append(h('span', { class: 'fav', title: t('Favorite') }, '★'));
+  if (it.period) box.append(h('span', { class: 'period', title: it.period === 'day' ? t('Day') : t('Night') }, it.period === 'day' ? '☀' : '☾'));
+  if (S?.workspaceKey && S.state.workspaces[S.workspaceKey] === it.id) box.append(h('span', { class: 'ws', title: t('Wallpaper for this project') }, '⌂'));
+  if (it.heavy) box.append(h('span', { class: 'heavy', title: t('High-resolution GIF — right-click → Optimize to MP4 to reduce CPU') }, '⚡'));
   return box;
 }
 
@@ -355,8 +357,8 @@ function renderGrid() {
   if (!S) return;
   const list = visibleItems();
   const nodes = list.map(cardFor);
-  if (filter === 'all' && !query) nodes.push(specialCard(ADD_ID, 'Thêm', '＋'), specialCard(OFF_ID, 'Tắt', 'OFF'));
-  if (!list.length && (filter !== 'all' || query)) nodes.push(h('div', { class: 'empty' }, 'Không có ảnh nào khớp.'));
+  if (filter === 'all' && !query) nodes.push(specialCard(ADD_ID, t('Add'), '＋'), specialCard(OFF_ID, t('Off'), 'OFF'));
+  if (!list.length && (filter !== 'all' || query)) nodes.push(h('div', { class: 'empty' }, t('No matching wallpapers.')));
   grid.replaceChildren(...nodes);
   markSelection();
   kickThumbs(); // draw first frames of new theme thumbnails
@@ -511,20 +513,20 @@ function openMenu(id: string, x: number, y: number) {
   if (!it) return;
   const isWs = !!S.workspaceKey && S.state.workspaces[S.workspaceKey] === id;
   const entries: ([string, () => void] | null)[] = [
-    ['Áp dụng', () => activate(id)],
-    [it.favorite ? '☆ Bỏ yêu thích' : '★ Yêu thích', () => post({ type: 'meta', id, patch: { favorite: it.favorite ? null : true } })],
+    [t('Apply'), () => activate(id)],
+    [it.favorite ? t('☆ Remove from favorites') : t('★ Add to favorites'), () => post({ type: 'meta', id, patch: { favorite: it.favorite ? null : true } })],
     null,
-    [it.period === 'day' ? '✓ ☀ Ban ngày (bấm để bỏ)' : '☀ Gán ban ngày', () => post({ type: 'meta', id, patch: { period: it.period === 'day' ? null : 'day' } })],
-    [it.period === 'night' ? '✓ ☾ Ban đêm (bấm để bỏ)' : '☾ Gán ban đêm', () => post({ type: 'meta', id, patch: { period: it.period === 'night' ? null : 'night' } })],
-    [isWs ? '✓ ⌂ Ảnh riêng của project này (bấm để bỏ)' : '⌂ Dùng riêng cho project này', () => post({ type: 'workspace', id: isWs ? null : id })],
+    [it.period === 'day' ? t('✓ ☀ Daytime (click to remove)') : t('☀ Use in the daytime'), () => post({ type: 'meta', id, patch: { period: it.period === 'day' ? null : 'day' } })],
+    [it.period === 'night' ? t('✓ ☾ Night-time (click to remove)') : t('☾ Use at night'), () => post({ type: 'meta', id, patch: { period: it.period === 'night' ? null : 'night' } })],
+    [isWs ? t('✓ ⌂ Wallpaper for this project (click to remove)') : t('⌂ Use only for this project'), () => post({ type: 'workspace', id: isWs ? null : id })],
     null,
-    [typeof it.opacity === 'number' ? `Độ rõ riêng: ${Math.round(it.opacity * 100)}% (bấm để bỏ)` : 'Dùng độ rõ hiện tại làm mặc định cho ảnh này', () =>
+    [typeof it.opacity === 'number' ? t('Own strength: {0}% (click to remove)', Math.round(it.opacity * 100)) : t('Use the current strength as this image’s default'), () =>
       post({ type: 'meta', id, patch: { opacity: typeof it.opacity === 'number' ? null : S!.state.display.opacity } })],
-    ['Đổi tên…', () => post({ type: 'rename', id })],
-    it.kind === 'gif' ? [it.heavy ? '⚡ Tối ưu: chuyển GIF → MP4 (giảm CPU)' : 'Chuyển GIF → MP4 (giảm dung lượng; GIF nhỏ vốn đã nhẹ CPU)', () => post({ type: 'optimize', id })] : null,
-    it.file ? ['Mở trong thư mục', () => post({ type: 'reveal', id })] : null,
+    [t('Rename…'), () => post({ type: 'rename', id })],
+    it.kind === 'gif' ? [it.heavy ? t('⚡ Optimize: convert GIF → MP4 (less CPU)') : t('Convert GIF → MP4 (smaller file; small GIFs are already light on CPU)'), () => post({ type: 'optimize', id })] : null,
+    it.file ? [t('Show in folder'), () => post({ type: 'reveal', id })] : null,
     null,
-    [it.kind === 'theme' ? 'Ẩn theme này' : 'Xoá (chuyển vào Thùng rác)', () => post({ type: 'delete', id })],
+    [it.kind === 'theme' ? t('Hide this theme') : t('Delete (move to trash)'), () => post({ type: 'delete', id })],
   ];
   menu.replaceChildren(
     ...entries.map((e) => (e ? h('button', { role: 'menuitem', onclick: () => { closeMenu(); e[1](); } }, e[0]) : h('hr'))),
@@ -553,7 +555,7 @@ menu.addEventListener('keydown', (e) => {
 });
 
 // ------------------------------------------------------------------ controls
-const INTERVALS: [number, string][] = [[0, 'Tắt'], [60, '1 phút'], [300, '5 phút'], [900, '15 phút'], [1800, '30 phút'], [3600, '1 giờ'], [10800, '3 giờ']];
+const INTERVALS = (): [number, string][] => [[0, t('Off')], [60, t('1 minute')], [300, t('5 minutes')], [900, t('15 minutes')], [1800, t('30 minutes')], [3600, t('1 hour')], [10800, t('3 hours')]];
 
 function slider(label: string, value: number, min: number, max: number, step: number, fmt: (v: number) => string, onInput: (v: number) => void, onCommit: (v: number) => void, disabled = false) {
   const out = h('output', {}, fmt(value));
@@ -604,22 +606,22 @@ function renderControls() {
     sendTheme(patch);
   };
   const row1 = h('div', { class: 'row' },
-    slider(behind ? 'Độ rõ ảnh' : 'Độ rõ nền', d.opacity, 0.02, 1, 0.01, pct, (v) => live({ opacity: v }), (v) => post({ type: 'display', patch: { opacity: v } })),
+    slider(behind ? t('Image strength') : t('Strength'), d.opacity, 0.02, 1, 0.01, pct, (v) => live({ opacity: v }), (v) => post({ type: 'display', patch: { opacity: v } })),
     // Only show controls that do something for what is on screen.
-    behind ? slider('Độ đục khung', d.frameOpacity, 0.3, 1, 0.01, pct, (v) => live({ frameOpacity: v }), (v) => post({ type: 'display', patch: { frameOpacity: v } })) : null,
-    themeShown ? slider('Mật độ', st.theme.density, 0, 1, 0.01, pct, (v) => liveTheme({ density: v }), (v) => post({ type: 'theme', patch: { density: v } })) : null,
-    themeShown ? slider('Tốc độ', st.theme.speed, 0, 1, 0.01, pct, (v) => liveTheme({ speed: v }), (v) => post({ type: 'theme', patch: { speed: v } })) : null,
+    behind ? slider(t('Frame opacity'), d.frameOpacity, 0.3, 1, 0.01, pct, (v) => live({ frameOpacity: v }), (v) => post({ type: 'display', patch: { frameOpacity: v } })) : null,
+    themeShown ? slider(t('Density'), st.theme.density, 0, 1, 0.01, pct, (v) => liveTheme({ density: v }), (v) => post({ type: 'theme', patch: { density: v } })) : null,
+    themeShown ? slider(t('Speed'), st.theme.speed, 0, 1, 0.01, pct, (v) => liveTheme({ speed: v }), (v) => post({ type: 'theme', patch: { speed: v } })) : null,
   );
   const row2 = h('div', { class: 'row' },
-    select('Chế độ', d.mode, [['overlay', 'Phủ mờ lên trên'], ['behind', 'Xuyên khung (nền phía sau)']], (v) => {
+    select(t('Mode'), d.mode, [['overlay', t('Overlay on top')], ['behind', t('See-through (behind the UI)')]], (v) => {
       // sensible strength per mode
       const opacity = v === 'behind' ? Math.max(d.opacity, 0.6) : Math.min(d.opacity, 0.3);
       post({ type: 'display', patch: { mode: v, opacity } });
     }),
-    select('Tự đổi', st.rotate.intervalSec, INTERVALS.some(([s]) => s === st.rotate.intervalSec) ? INTERVALS : [...INTERVALS, [st.rotate.intervalSec, `${Math.round(st.rotate.intervalSec / 60)} phút`]], (v) => post({ type: 'rotate', patch: { intervalSec: v } })),
-    select('Thứ tự', st.rotate.order, [['sequential', 'Lần lượt'], ['shuffle', 'Ngẫu nhiên']], (v) => post({ type: 'rotate', patch: { order: v } })),
-    select('Nguồn', st.rotate.source, [['all', 'Tất cả'], ['favorites', 'Chỉ ★']], (v) => post({ type: 'rotate', patch: { source: v } })),
-    h('button', { class: 'link', onclick: () => { advanced = !advanced; persist(); renderControls(); } }, advanced ? 'Ẩn nâng cao ▴' : 'Nâng cao ▾'),
+    select(t('Rotate'), st.rotate.intervalSec, INTERVALS().some(([s]) => s === st.rotate.intervalSec) ? INTERVALS() : [...INTERVALS(), [st.rotate.intervalSec, t('{0} min', Math.round(st.rotate.intervalSec / 60))]], (v) => post({ type: 'rotate', patch: { intervalSec: v } })),
+    select(t('Order'), st.rotate.order, [['sequential', t('In order')], ['shuffle', t('Shuffle')]], (v) => post({ type: 'rotate', patch: { order: v } })),
+    select(t('Source'), st.rotate.source, [['all', t('All')], ['favorites', t('★ only')]], (v) => post({ type: 'rotate', patch: { source: v } })),
+    h('button', { class: 'link', onclick: () => { advanced = !advanced; persist(); renderControls(); } }, advanced ? t('Hide advanced ▴') : t('Advanced ▾')),
   );
   const nodes: Node[] = [row1, row2];
   if (advanced) {
@@ -629,23 +631,23 @@ function renderControls() {
     t2.addEventListener('change', () => post({ type: 'schedule', patch: { nightStart: t2.value } }));
     nodes.push(
       h('div', { class: 'row' },
-        select('Hiển thị', d.fit, [['cover', 'Phủ kín'], ['contain', 'Vừa khung'], ['fill', 'Kéo giãn'], ['center', 'Giữ nguyên, ở giữa'], ['tile', 'Lát gạch']], (v) => post({ type: 'display', patch: { fit: v } })),
-        select('Vị trí', d.position, [['center', 'Giữa'], ['top', 'Trên'], ['bottom', 'Dưới'], ['left', 'Trái'], ['right', 'Phải'], ['right bottom', 'Góc phải dưới'], ['left bottom', 'Góc trái dưới']], (v) => post({ type: 'display', patch: { position: v } })),
-        select('Hoà trộn', d.blend, [['auto', 'Tự động'], ['normal', 'Bình thường'], ['screen', 'Screen'], ['overlay', 'Overlay'], ['soft-light', 'Soft light'], ['multiply', 'Multiply'], ['luminosity', 'Luminosity']], (v) => post({ type: 'display', patch: { blend: v } })),
-        slider('Làm mờ', d.blur, 0, 20, 1, (v) => v + 'px', (v) => live({ blur: v }), (v) => post({ type: 'display', patch: { blur: v } })),
+        select(t('Fit'), d.fit, [['cover', t('Cover')], ['contain', t('Contain')], ['fill', t('Stretch')], ['center', t('Original size, centered')], ['tile', t('Tile')]], (v) => post({ type: 'display', patch: { fit: v } })),
+        select(t('Position'), d.position, [['center', t('Center')], ['top', t('Top')], ['bottom', t('Bottom')], ['left', t('Left')], ['right', t('Right')], ['right bottom', t('Bottom right')], ['left bottom', t('Bottom left')]], (v) => post({ type: 'display', patch: { position: v } })),
+        select(t('Blend'), d.blend, [['auto', t('Auto')], ['normal', t('Normal')], ['screen', 'Screen'], ['overlay', 'Overlay'], ['soft-light', 'Soft light'], ['multiply', 'Multiply'], ['luminosity', 'Luminosity']], (v) => post({ type: 'display', patch: { blend: v } })),
+        slider(t('Blur'), d.blur, 0, 20, 1, (v) => v + 'px', (v) => live({ blur: v }), (v) => post({ type: 'display', patch: { blur: v } })),
       ),
       h('div', { class: 'row' },
-        check('Tự đổi theo giờ (ảnh ☀ ban ngày, ☾ ban đêm)', st.schedule.enabled, (v) => post({ type: 'schedule', patch: { enabled: v } })),
-        h('label', { class: 'select' }, h('span', {}, '☀ từ'), t1),
-        h('label', { class: 'select' }, h('span', {}, '☾ từ'), t2),
-        check('Tạm dừng khi IDE không focus (tiết kiệm pin)', d.pauseWhenUnfocused, (v) => post({ type: 'display', patch: { pauseWhenUnfocused: v } })),
+        check(t('Switch by time of day (☀ day / ☾ night images)'), st.schedule.enabled, (v) => post({ type: 'schedule', patch: { enabled: v } })),
+        h('label', { class: 'select' }, h('span', {}, t('☀ from')), t1),
+        h('label', { class: 'select' }, h('span', {}, t('☾ from')), t2),
+        check(t('Pause when the IDE is not focused (saves battery)'), d.pauseWhenUnfocused, (v) => post({ type: 'display', patch: { pauseWhenUnfocused: v } })),
       ),
       h('div', { class: 'row muted' },
-        h('span', {}, 'Thư mục: '),
+        h('span', {}, t('Folder: ')),
         h('code', {}, S.libraryDir),
-        S.hiddenThemes ? h('button', { class: 'link', onclick: () => post({ type: 'restoreThemes' }) }, `Hiện lại ${S.hiddenThemes} theme đã ẩn`) : null,
-        h('button', { class: 'link', onclick: () => post({ type: 'command', command: 'wallpaperStudio.optimizeHeavy' }) }, 'Tối ưu GIF nặng'),
-        h('button', { class: 'link', onclick: () => post({ type: 'command', command: 'wallpaperStudio.uninstall' }) }, 'Gỡ runtime'),
+        S.hiddenThemes ? h('button', { class: 'link', onclick: () => post({ type: 'restoreThemes' }) }, t('Show {0} hidden theme(s)', S.hiddenThemes)) : null,
+        h('button', { class: 'link', onclick: () => post({ type: 'command', command: 'wallpaperStudio.optimizeHeavy' }) }, t('Optimize heavy GIFs')),
+        h('button', { class: 'link', onclick: () => post({ type: 'command', command: 'wallpaperStudio.uninstall' }) }, t('Remove runtime')),
       ),
     );
   }
@@ -660,11 +662,11 @@ function renderBanner() {
   banner.hidden = r === 'active' || r === 'outdated';
   if (banner.hidden) return;
   if (r === 'needsReload') {
-    banner.replaceChildren(h('span', {}, '✅ Đã cài runtime. Reload cửa sổ 1 lần để bật ảnh nền.'), h('button', { onclick: () => post({ type: 'command', command: 'workbench.action.reloadWindow' }) }, 'Reload ngay'));
+    banner.replaceChildren(h('span', {}, t('✅ Runtime installed. Reload the window once to turn the wallpaper on.')), h('button', { onclick: () => post({ type: 'command', command: 'workbench.action.reloadWindow' }) }, t('Reload now')));
   } else {
     banner.replaceChildren(
-      h('span', {}, r === 'error' ? '⚠ ' + (S.runtimeError || 'Lỗi runtime') : '⚠ Chưa cài runtime ảnh nền vào IDE (chỉ cần 1 lần).'),
-      h('button', { onclick: () => post({ type: 'command', command: 'wallpaperStudio.install' }) }, 'Cài đặt'),
+      h('span', {}, r === 'error' ? '⚠ ' + (S.runtimeError || t('Runtime error')) : t('⚠ The wallpaper runtime is not installed in the IDE yet (one time only).')),
+      h('button', { onclick: () => post({ type: 'command', command: 'wallpaperStudio.install' }) }, t('Install')),
     );
   }
 }
@@ -673,13 +675,13 @@ function renderCountdown() {
   if (!S) return;
   const n = S.nextChangeAt;
   if (!n || !S.state.enabled) {
-    countdown.textContent = S.reason === 'workspace' ? '⌂ ảnh riêng project' : '';
+    countdown.textContent = S.reason === 'workspace' ? t('⌂ project wallpaper') : '';
     return;
   }
   const s = Math.max(0, Math.round((n - Date.now()) / 1000));
   const mm = Math.floor(s / 60);
   const ss = String(s % 60).padStart(2, '0');
-  countdown.textContent = `⟳ đổi sau ${mm >= 60 ? Math.floor(mm / 60) + 'h' + String(mm % 60).padStart(2, '0') : mm}:${ss}`;
+  countdown.textContent = t('⟳ next in {0}', `${mm >= 60 ? Math.floor(mm / 60) + 'h' + String(mm % 60).padStart(2, '0') : mm}:${ss}`);
 }
 setInterval(renderCountdown, 1000);
 
@@ -711,13 +713,13 @@ document.addEventListener('drop', async (e) => {
     const ext = '.' + (f.name.split('.').pop() ?? '').toLowerCase();
     if (!exts.includes(ext)) continue;
     if (f.size > 300 * 1048576) {
-      showToast(`${f.name} quá lớn (> 300MB)`);
+      showToast(t('{0} is too large (> 300 MB)', f.name));
       continue;
     }
     post({ type: 'importData', name: f.name, data: new Uint8Array(await f.arrayBuffer()) });
     n++;
   }
-  showToast(n ? `Đang thêm ${n} file…` : 'Không có file ảnh/GIF/video hợp lệ');
+  showToast(n ? t('Adding {0} file(s)…', n) : t('No valid image / GIF / video files'));
 });
 
 // ------------------------------------------------------------------ messages

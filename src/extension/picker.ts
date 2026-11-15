@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
 import type { Controller } from './controller';
 import { SUPPORTED_EXTS } from '../core/library';
+import { getLang, t } from '../shared/i18n';
 
 /** Messages webview → extension. */
 type InMsg =
@@ -54,6 +55,11 @@ export class PickerProvider implements vscode.WebviewViewProvider, vscode.Dispos
       this.ctl.preview(null);
       this.view = undefined;
     });
+  }
+
+  /** Re-render the webview (e.g. after the UI language changed). */
+  reload() {
+    if (this.view) this.view.webview.html = this.html(this.view.webview);
   }
 
   async reveal() {
@@ -119,7 +125,7 @@ export class PickerProvider implements vscode.WebviewViewProvider, vscode.Dispos
         break;
       case 'rename': {
         const it = c.items().find((i) => i.id === m.id);
-        const name = await vscode.window.showInputBox({ prompt: 'Tên hiển thị', value: it?.name });
+        const name = await vscode.window.showInputBox({ prompt: t('Display name'), value: it?.name });
         if (name !== undefined) await c.renameItem(m.id, name);
         break;
       }
@@ -128,9 +134,9 @@ export class PickerProvider implements vscode.WebviewViewProvider, vscode.Dispos
         if (!it) break;
         const isTheme = it.kind === 'theme';
         const ok = await vscode.window.showWarningMessage(
-          isTheme ? `Ẩn theme "${it.name}"? (có thể hiện lại sau)` : `Xoá "${it.name}"? File sẽ được chuyển vào Thùng rác.`,
+          isTheme ? t('Hide theme "{0}"? (you can show it again later)', it.name) : t('Delete "{0}"? The file will be moved to the trash.', it.name),
           { modal: true },
-          isTheme ? 'Ẩn' : 'Xoá',
+          isTheme ? t('Hide') : t('Delete'),
         );
         if (ok) await c.deleteItem(m.id);
         break;
@@ -179,11 +185,11 @@ export class PickerProvider implements vscode.WebviewViewProvider, vscode.Dispos
       `script-src 'nonce-${nonce}'`,
       `font-src ${w.cspSource}`,
     ].join('; ');
-    return `<!doctype html><html lang="vi"><head><meta charset="utf-8">
+    return `<!doctype html><html lang="${getLang()}"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${csp}">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="${css}"><title>Live Wallpaper Studio</title></head>
-<body><div id="app" data-exts="${SUPPORTED_EXTS.join(',')}"></div>
+<body><div id="app" data-lang="${getLang()}" data-exts="${SUPPORTED_EXTS.join(',')}"></div>
 <script nonce="${nonce}" src="${js}"></script></body></html>`;
   }
 }
