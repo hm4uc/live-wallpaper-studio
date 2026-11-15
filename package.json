@@ -1,0 +1,212 @@
+{
+  "name": "live-wallpaper-studio",
+  "displayName": "Live Wallpaper Studio",
+  "description": "Wallpapers, GIFs, videos & animated pixel themes for VS Code and Antigravity IDE — visual picker, instant switching, auto-rotation. Ảnh nền / GIF / video cho VS Code & Antigravity IDE.",
+  "version": "1.0.0",
+  "publisher": "derekhoang",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
+  "keywords": [
+    "background",
+    "wallpaper",
+    "live wallpaper",
+    "gif",
+    "video",
+    "pixel",
+    "theme",
+    "vscode",
+    "antigravity"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "wallpaperStudio",
+          "title": "Wallpaper",
+          "icon": "media/panel-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "wallpaperStudio": [
+        {
+          "type": "webview",
+          "id": "wallpaperStudio.picker",
+          "name": "Live Wallpaper Studio"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "wallpaperStudio.open",
+        "title": "Mở bộ chọn ảnh nền",
+        "category": "Wallpaper",
+        "icon": "$(file-media)"
+      },
+      {
+        "command": "wallpaperStudio.next",
+        "title": "Ảnh nền kế tiếp",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.prev",
+        "title": "Ảnh nền trước đó",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.random",
+        "title": "Ảnh nền ngẫu nhiên",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.toggle",
+        "title": "Bật / tắt ảnh nền",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.quickMenu",
+        "title": "Menu nhanh",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.addFiles",
+        "title": "Thêm ảnh / GIF / video…",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.addFromUrl",
+        "title": "Thêm ảnh từ URL…",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.openLibraryFolder",
+        "title": "Mở thư mục ảnh",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.setRotation",
+        "title": "Đặt chế độ tự đổi ảnh…",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.optimizeHeavy",
+        "title": "Tối ưu các GIF nặng (chuyển sang MP4)",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.setWorkspaceWallpaper",
+        "title": "Dùng ảnh hiện tại cho riêng project này",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.clearWorkspaceWallpaper",
+        "title": "Bỏ ảnh riêng của project này",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.install",
+        "title": "Cài đặt / sửa lại runtime (cần reload 1 lần)",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.uninstall",
+        "title": "Gỡ runtime, khôi phục IDE gốc",
+        "category": "Wallpaper"
+      },
+      {
+        "command": "wallpaperStudio.status",
+        "title": "Kiểm tra trạng thái",
+        "category": "Wallpaper"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "wallpaperStudio.open",
+        "key": "ctrl+alt+w",
+        "mac": "ctrl+alt+w"
+      },
+      {
+        "command": "wallpaperStudio.next",
+        "key": "ctrl+alt+]",
+        "mac": "ctrl+alt+]"
+      },
+      {
+        "command": "wallpaperStudio.prev",
+        "key": "ctrl+alt+[",
+        "mac": "ctrl+alt+["
+      },
+      {
+        "command": "wallpaperStudio.toggle",
+        "key": "ctrl+alt+0",
+        "mac": "ctrl+alt+0"
+      }
+    ],
+    "configuration": {
+      "title": "Live Wallpaper Studio",
+      "properties": {
+        "wallpaperStudio.libraryPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Thư mục chứa ảnh nền. Để trống = `<thư mục Ảnh>/IDE Wallpapers` (bỏ qua OneDrive), hoặc `~/IDE Wallpapers`."
+        },
+        "wallpaperStudio.ffmpegPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Đường dẫn ffmpeg (tuỳ chọn, dùng để tối ưu GIF nặng). Để trống = tìm trong PATH."
+        },
+        "wallpaperStudio.statusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hiện nút ảnh nền trên thanh trạng thái."
+        },
+        "wallpaperStudio.autoRepair": {
+          "type": "boolean",
+          "default": true,
+          "description": "Tự hỏi để cài lại runtime khi IDE cập nhật làm mất ảnh nền."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "package": "npm run typecheck && npm run build && vsce package --no-dependencies",
+    "vscode:uninstall": "node ./dist/uninstall.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hm4uc/live-wallpaper-studio.git"
+  },
+  "homepage": "https://github.com/hm4uc/live-wallpaper-studio#readme",
+  "bugs": {
+    "url": "https://github.com/hm4uc/live-wallpaper-studio/issues"
+  },
+  "galleryBanner": {
+    "color": "#151640",
+    "theme": "dark"
+  }
+}

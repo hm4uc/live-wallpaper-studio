@@ -1,0 +1,112 @@
+:root {
+  --card-w: 124px;
+  --radius: 8px;
+  --accent: var(--vscode-focusBorder, #3b82f6);
+  --muted: var(--vscode-descriptionForeground, #9aa0a6);
+  --surface: color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
+  --surface-2: color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  padding: 0 12px 8px;
+  color: var(--vscode-foreground);
+  background: transparent;
+  font: 13px/1.4 var(--vscode-font-family, system-ui, sans-serif);
+  user-select: none;
+  overflow: hidden;
+}
+/* Fixed header + controls; only the grid scrolls (works from ~200px panel height up). */
+#app { display: flex; flex-direction: column; height: 100%; gap: 6px; }
+#app > header, #app > .banner, #app > .url, #app > .toolbar, #app > .controls { flex-shrink: 0; }
+button { font: inherit; color: inherit; }
+
+header { display: flex; align-items: center; gap: 8px; padding-top: 6px; }
+header .cmd { font-family: var(--vscode-editor-font-family, monospace); font-weight: 600; background: var(--surface-2); padding: 2px 8px; border-radius: 6px; }
+header .title { color: var(--muted); }
+header .spacer { flex: 1; }
+header .hint { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.countdown { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+button.icon { background: var(--surface); border: 1px solid transparent; border-radius: 6px; width: 28px; height: 26px; cursor: pointer; padding: 0; display: inline-grid; place-items: center; color: var(--vscode-icon-foreground, currentColor); }
+button.icon:hover { background: var(--surface-2); }
+button.icon:focus-visible { outline: 1px solid var(--accent); }
+
+.banner { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius); background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #e2b93d) 16%, transparent); border: 1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground, #e2b93d) 45%, transparent); }
+.banner span { flex: 1; }
+.banner button, .row button.link:hover { cursor: pointer; }
+.banner button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: 0; border-radius: 4px; padding: 4px 12px; }
+.banner button:hover { background: var(--vscode-button-hoverBackground); }
+
+input.url, input.search, select, input[type=time] {
+  background: var(--vscode-input-background); color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent); border-radius: 4px; padding: 3px 6px; font: inherit;
+}
+input.url { width: 100%; }
+input:focus-visible, select:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+.chip { background: var(--surface); border: 1px solid transparent; border-radius: 999px; padding: 2px 10px; cursor: pointer; font-size: 12px; }
+.chip:hover { background: var(--surface-2); }
+.chip.on { background: color-mix(in srgb, var(--accent) 25%, transparent); border-color: var(--accent); }
+input.search { width: 160px; }
+
+.grid { display: flex; flex-wrap: wrap; gap: 8px 10px; outline: none; padding: 3px; align-content: flex-start; flex: 1 1 auto; min-height: 96px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
+.card { width: var(--card-w); cursor: pointer; border-radius: calc(var(--radius) + 2px); padding: 3px; border: 2px solid transparent; transition: transform 120ms ease, border-color 120ms ease; }
+.card:hover { transform: translateY(-1px); }
+.card .thumb { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; background: var(--surface-2); }
+.card .thumb > img, .card .thumb > video, .card .thumb > canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.card .thumb canvas.pix { image-rendering: pixelated; image-rendering: crisp-edges; }
+.card .thumb .anim { visibility: hidden; }
+.card .thumb.playing .anim { visibility: visible; }
+.card .label { display: flex; align-items: center; gap: 4px; padding: 4px 2px 0; }
+.card .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .check { color: var(--accent); font-weight: 700; visibility: hidden; }
+.card.current .check { visibility: visible; }
+.card.sel { border-color: var(--accent); }
+.grid:focus-visible .card.sel { box-shadow: 0 0 0 1px var(--accent); }
+.card .kind { position: absolute; left: 4px; bottom: 4px; font-size: 10px; padding: 0 5px; border-radius: 4px; background: rgba(0,0,0,.55); color: #fff; letter-spacing: .02em; }
+.card .fav, .card .period, .card .ws, .card .heavy { position: absolute; top: 3px; font-size: 12px; text-shadow: 0 1px 2px rgba(0,0,0,.8); color: #ffd23f; }
+.card .fav { right: 5px; }
+.card .period { right: 20px; color: #fff; }
+.card .ws { left: 5px; color: #fff; }
+.card .heavy { left: 18px; color: #ffb703; }
+.card.special .thumb { display: grid; place-items: center; }
+.card.special .big { font-size: 22px; font-weight: 700; color: var(--muted); letter-spacing: .05em; }
+.card.off .thumb { background: repeating-linear-gradient(45deg, var(--surface-2) 0 10px, var(--surface) 10px 20px); }
+.card.add .thumb { border: 1px dashed var(--muted); background: transparent; }
+.empty { color: var(--muted); padding: 16px 4px; }
+
+.controls { display: flex; flex-direction: column; gap: 7px; padding-top: 7px; border-top: 1px solid var(--surface-2); max-height: 55%; overflow-y: auto; scrollbar-width: thin; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.row.muted { color: var(--muted); font-size: 12px; gap: 8px 14px; }
+.row code { font-family: var(--vscode-editor-font-family, monospace); font-size: 11px; user-select: text; }
+label.slider { display: flex; align-items: center; gap: 6px; }
+label.slider span { white-space: nowrap; }
+label.slider output { width: 34px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+label.slider.disabled { opacity: .45; }
+input[type=range] { width: 100px; accent-color: var(--vscode-button-background, var(--accent)); }
+label.select, label.check { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+label.check input { accent-color: var(--vscode-button-background, var(--accent)); }
+button.link { background: none; border: 0; color: var(--vscode-textLink-foreground); padding: 0; cursor: pointer; }
+button.link:hover { text-decoration: underline; }
+
+.menu { position: fixed; z-index: 10; min-width: 220px; padding: 4px; border-radius: 6px; background: var(--vscode-menu-background, var(--vscode-editorWidget-background)); color: var(--vscode-menu-foreground, inherit); border: 1px solid var(--vscode-menu-border, var(--surface-2)); box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+.menu button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+.menu button:hover, .menu button:focus { background: var(--vscode-menu-selectionBackground, var(--surface-2)); color: var(--vscode-menu-selectionForeground, inherit); outline: none; }
+.menu hr { border: 0; border-top: 1px solid var(--surface-2); margin: 4px 0; }
+
+.drop { position: fixed; inset: 6px; z-index: 20; display: grid; place-items: center; border: 2px dashed var(--accent); border-radius: 12px; background: color-mix(in srgb, var(--vscode-panel-background, #000) 80%, transparent); font-size: 15px; pointer-events: none; }
+.toast { position: fixed; right: 14px; bottom: 12px; z-index: 30; background: var(--vscode-notifications-background, var(--vscode-editorWidget-background)); border: 1px solid var(--surface-2); padding: 6px 12px; border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+
+@media (max-width: 520px) {
+  header .hint { display: none; }
+  :root { --card-w: 112px; }
+  label.slider { width: 100%; }
+  input[type=range] { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}
