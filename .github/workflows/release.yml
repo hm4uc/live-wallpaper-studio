@@ -49,6 +49,9 @@ jobs:
   open-vsx:
     needs: package
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # trusted publishing (OIDC)
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -56,7 +59,13 @@ jobs:
       - name: Publish to Open VSX (Antigravity IDE)
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: npx --yes ovsx@1 publish "${{ needs.package.outputs.vsix }}" --skip-duplicate
+        run: |
+          if [ -n "$OVSX_PAT" ]; then
+            npx --yes ovsx@1 publish "${{ needs.package.outputs.vsix }}" --skip-duplicate
+          else
+            unset OVSX_PAT
+            npx --yes ovsx@1 publish "${{ needs.package.outputs.vsix }}" --trusted-publishing --skip-duplicate
+          fi
 
   vs-marketplace:
     needs: package
