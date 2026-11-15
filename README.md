@@ -3,11 +3,11 @@
 Wallpapers, GIFs, videos and **animated pixel themes** for **VS Code** and **Antigravity IDE** (and other VS Code forks).
 Pick one from a visual gallery, **switch instantly without reloading**, and let it rotate on a schedule. Works on Windows, macOS and Linux.
 
-![Code Rain pixel theme behind a light VS Code, with the wallpaper picker open](media/readme/code-rain.gif)
+![Code Rain pixel theme behind Antigravity IDE (dark theme), with the wallpaper picker open](media/readme/code-rain-dark.gif)
 
-![City Rain pixel theme behind a light VS Code](media/readme/city-rain.gif)
+![City Rain pixel theme behind Antigravity IDE (dark theme)](media/readme/city-rain-dark.gif)
 
-<sub>VS Code, *Light Modern* theme, *See-through* mode: **Code Rain** (top) and **City Rain** (bottom).</sub>
+<sub>Antigravity IDE, dark theme, *See-through* mode: **Code Rain** (top) and **City Rain** (bottom). Works the same in VS Code.</sub>
 
 ## Features
 
