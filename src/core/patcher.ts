@@ -5,6 +5,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
+import { t } from '../shared/i18n';
 
 export const MARK_START = '/* wallpaper-studio:start';
 export const MARK_END = '/* wallpaper-studio:end */';
@@ -172,19 +173,19 @@ export function permissionHelp(appRoot: string, cliPath: string, execPath: strin
   const ro = /[\\/]snap[\\/]|^\/app[\\/]|flatpak/i.test(appRoot);
   if (ro) {
     return {
-      reason: 'IDE được cài dạng Snap/Flatpak (thư mục chỉ-đọc) nên không thể cài ảnh nền. Hãy dùng bản .deb / .rpm / .tar.gz của IDE.',
+      reason: t('The IDE is installed as a Snap/Flatpak (read-only folder), so the wallpaper cannot be installed. Use the .deb / .rpm / .tar.gz build of the IDE.'),
       command: null,
     };
   }
   const q = (x: string) => '"' + x.replace(/"/g, '\\"') + '"';
   if (platform === 'win32') {
     return {
-      reason: 'IDE được cài cho mọi người dùng (thư mục cần quyền Administrator).',
+      reason: t('The IDE is installed for all users (the folder needs Administrator rights).'),
       command: `$env:ELECTRON_RUN_AS_NODE=1; & ${q(execPath)} ${q(cliPath)} install ${q(appRoot)}`,
     };
   }
   return {
-    reason: platform === 'darwin' ? 'Ứng dụng IDE thuộc quyền tài khoản khác / quản trị viên.' : 'Thư mục cài IDE thuộc quyền root.',
+    reason: platform === 'darwin' ? t('The IDE app belongs to another account / an administrator.') : t('The IDE install folder is owned by root.'),
     command: `sudo ELECTRON_RUN_AS_NODE=1 ${q(execPath)} ${q(cliPath)} install ${q(appRoot)}`,
   };
 }

@@ -55,6 +55,13 @@ describe('uninstall hook locates resources/app from any executable', () => {
     const exe = '/Applications/IDE.app/Contents/Frameworks/IDE Helper (Plugin).app/Contents/MacOS/IDE Helper (Plugin)';
     expect(candidates(exe).map((p) => p.replace(/\\/g, '/'))).toContain('/Applications/IDE.app/Contents/Resources/app');
   });
+  it('newer VS Code on Windows: <install>/<commit>/resources/app', () => {
+    fs.mkdirSync(path.join(tmp, 'c4453f8ea4', 'resources', 'app'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'bin'));
+    const list = candidates(path.join(tmp, 'Code.exe'));
+    expect(list).toContain(path.join(tmp, 'c4453f8ea4', 'resources', 'app'));
+    expect(list.some((p) => p.includes(path.join(tmp, 'bin')))).toBe(false);
+  });
   it('Windows / Linux executable next to resources/', () => {
     expect(candidates('/usr/share/code/code').map((p) => p.replace(/\\/g, '/'))).toContain('/usr/share/code/resources/app');
   });

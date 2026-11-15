@@ -9,6 +9,7 @@ import { StateStore, defaultProfileStorage } from '../core/stateStore';
 import * as patcher from '../core/patcher';
 import { downloadToLibrary, findFfmpeg, gifToMp4 } from '../core/media';
 import { randomOther, resolveActive, stepFrom, type Resolution } from '../shared/rotation';
+import { t } from '../shared/i18n';
 import type { DisplaySettings, RotateSettings, ScheduleSettings, ThemeSettings, WallpaperItem, WallpaperState } from '../shared/types';
 
 export type RuntimeStatus = 'active' | 'needsReload' | 'notInstalled' | 'outdated' | 'error';
@@ -137,7 +138,7 @@ export class Controller implements vscode.Disposable {
 
   async importPaths(paths: string[]): Promise<string[]> {
     const { added, skipped } = importFiles(this.libraryDir, paths);
-    if (skipped.length) vscode.window.showWarningMessage(`Bỏ qua ${skipped.length} file không hỗ trợ: ${skipped.map((p) => path.basename(p)).join(', ')}`);
+    if (skipped.length) vscode.window.showWarningMessage(t('Skipped {0} unsupported file(s): {1}', skipped.length, skipped.map((p) => path.basename(p)).join(', ')));
     this.rescan();
     if (added.length) this.select('file:' + path.basename(added[added.length - 1]));
     return added;
@@ -156,7 +157,7 @@ export class Controller implements vscode.Disposable {
   }
 
   async addFromUrl(url: string) {
-    const file = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Đang tải ảnh nền…' }, () => downloadToLibrary(url, this.libraryDir));
+    const file = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: t('Downloading wallpaper…') }, () => downloadToLibrary(url, this.libraryDir));
     this.rescan();
     this.select('file:' + path.basename(file));
   }
@@ -190,19 +191,19 @@ export class Controller implements vscode.Disposable {
   async optimize(itemIds?: string[]) {
     const ffmpeg = await findFfmpeg(vscode.workspace.getConfiguration('wallpaperStudio').get<string>('ffmpegPath') || undefined);
     if (!ffmpeg) {
-      vscode.window.showWarningMessage('Không tìm thấy ffmpeg. Cài ffmpeg (vd: winget install ffmpeg) hoặc đặt "wallpaperStudio.ffmpegPath".');
+      vscode.window.showWarningMessage(t('ffmpeg not found. Install it (e.g. winget install ffmpeg / brew install ffmpeg / apt install ffmpeg) or set "wallpaperStudio.ffmpegPath".'));
       return;
     }
     const targets = (itemIds ? itemIds.map((id) => this.fileFor(id)) : this.files.filter((f) => f.kind === 'gif' && f.heavy)).filter(
       (f): f is ScannedFile => !!f && f.kind === 'gif',
     );
     if (!targets.length) {
-      vscode.window.showInformationMessage('Không có GIF nặng nào cần tối ưu. (GIF nhỏ hơn ~900×500 giữ nguyên dạng GIF sẽ nhẹ hơn video.)');
+      vscode.window.showInformationMessage(t('No heavy GIFs to optimize. (GIFs smaller than ~900×500 use less CPU as GIF than as video.)'));
       return;
     }
     const state = this.store.read();
     let saved = 0;
-    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Đang tối ưu GIF → MP4', cancellable: false }, async (p) => {
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: t('Optimizing GIF → MP4'), cancellable: false }, async (p) => {
       for (const [i, f] of targets.entries()) {
         p.report({ message: `${i + 1}/${targets.length}: ${f.file}` });
         try {
@@ -220,12 +221,12 @@ export class Controller implements vscode.Disposable {
             for (const k of Object.keys(s.workspaces)) if (s.workspaces[k] === oldId) s.workspaces[k] = newId;
           });
         } catch (e) {
-          vscode.window.showErrorMessage(`Tối ưu ${f.file} thất bại: ${(e as Error).message}`);
+          vscode.window.showErrorMessage(t('Optimizing {0} failed: {1}', f.file, (e as Error).message));
         }
       }
     });
     this.rescan();
-    if (saved > 0) vscode.window.showInformationMessage(`Đã tối ưu ${targets.length} GIF, tiết kiệm ${(saved / 1048576).toFixed(1)} MB. File gốc nằm trong thư mục .originals.`);
+    if (saved > 0) vscode.window.showInformationMessage(t('Optimized {0} GIF(s), saved {1} MB. The originals are in the .originals folder.', targets.length, (saved / 1048576).toFixed(1)));
   }
 
   // ------------------------------------------------------------------ selection
@@ -288,11 +289,11 @@ export class Controller implements vscode.Disposable {
     if (cfg.get<string>('gpuAcceleration') === 'off' || this.ctx.globalState.get<boolean>('askedTerminalDom')) return;
     await this.ctx.globalState.update('askedTerminalDom', true);
     const pick = await vscode.window.showInformationMessage(
-      'Chế độ "Xuyên khung": để terminal cũng trong suốt, cần tắt GPU cho terminal (terminal.integrated.gpuAcceleration = off). Bật luôn?',
-      'Bật',
-      'Không',
+      t('"See-through" mode: to make the terminal transparent too, terminal GPU acceleration must be off (terminal.integrated.gpuAcceleration = off). Turn it off now?'),
+      t('Yes'),
+      t('No'),
     );
-    if (pick === 'Bật') await cfg.update('gpuAcceleration', 'off', vscode.ConfigurationTarget.Global);
+    if (pick === t('Yes')) await cfg.update('gpuAcceleration', 'off', vscode.ConfigurationTarget.Global);
   }
 
   updateTheme(patch: Partial<ThemeSettings>) {
@@ -320,7 +321,7 @@ export class Controller implements vscode.Disposable {
   setWorkspaceWallpaper(id: string | null) {
     const key = this.workspaceKey();
     if (!key) {
-      vscode.window.showWarningMessage('Cửa sổ này chưa mở project/thư mục nào.');
+      vscode.window.showWarningMessage(t('This window has no project or folder open.'));
       return;
     }
     this.store.update((s) => {
@@ -343,22 +344,22 @@ export class Controller implements vscode.Disposable {
     }
     const r = this.resolution(state);
     if (this.runtimeStatus === 'needsReload') {
-      this.statusItem.text = '$(warning) Wallpaper: cần reload';
+      this.statusItem.text = t('$(warning) Wallpaper: reload needed');
       this.statusItem.command = 'workbench.action.reloadWindow';
-      this.statusItem.tooltip = 'Runtime đã được cài. Reload cửa sổ một lần để bật ảnh nền.';
+      this.statusItem.tooltip = t('Runtime installed. Reload the window once to turn the wallpaper on.');
     } else if (this.runtimeStatus === 'notInstalled' || this.runtimeStatus === 'error') {
-      this.statusItem.text = '$(warning) Wallpaper: chưa cài';
+      this.statusItem.text = t('$(warning) Wallpaper: not installed');
       this.statusItem.command = 'wallpaperStudio.install';
-      this.statusItem.tooltip = this.runtimeError || 'Bấm để cài runtime ảnh nền (1 lần).';
+      this.statusItem.tooltip = this.runtimeError || t('Click to install the wallpaper runtime (one time).');
     } else {
       this.statusItem.command = 'wallpaperStudio.quickMenu';
-      const name = r.item ? r.item.name : 'Tắt';
+      const name = r.item ? r.item.name : t('Off');
       this.statusItem.text = `$(file-media) ${name.length > 18 ? name.slice(0, 17) + '…' : name}`;
       const md = new vscode.MarkdownString(undefined, true);
-      md.appendMarkdown(`**Live Wallpaper Studio**\n\n${r.item ? `Đang hiển thị: **${r.item.name}**` : 'Ảnh nền đang tắt'}`);
-      if (r.reason === 'workspace') md.appendMarkdown(' _(ảnh riêng của project)_');
-      if (r.nextChangeAt) md.appendMarkdown(`\n\nTự đổi sau: ${formatDuration(r.nextChangeAt - Date.now())}`);
-      md.appendMarkdown('\n\nClick: menu nhanh · `Ctrl+Alt+W`: bộ chọn · `Ctrl+Alt+]` / `[`: kế/trước');
+      md.appendMarkdown(`**Live Wallpaper Studio**\n\n${r.item ? t('Showing: **{0}**', r.item.name) : t('Wallpaper is off')}`);
+      if (r.reason === 'workspace') md.appendMarkdown(t(' _(project wallpaper)_'));
+      if (r.nextChangeAt) md.appendMarkdown('\n\n' + t('Next change in: {0}', formatDuration(r.nextChangeAt - Date.now())));
+      md.appendMarkdown('\n\n' + t('Click: quick menu · `Ctrl+Alt+W`: picker · `Ctrl+Alt+]` / `[`: next / previous'));
       this.statusItem.tooltip = md;
     }
     this.statusItem.show();
@@ -384,11 +385,11 @@ export class Controller implements vscode.Disposable {
         }
         const autoRepair = vscode.workspace.getConfiguration('wallpaperStudio').get<boolean>('autoRepair', true);
         const msg = wasInstalled
-          ? 'Ảnh nền đã mất sau khi IDE cập nhật. Áp dụng lại? (cần reload 1 lần)'
-          : 'Live Wallpaper Studio cần cài runtime vào IDE một lần (sau đó đổi ảnh không cần reload).';
+          ? t('The wallpaper was removed by an IDE update. Re-apply it? (one reload needed)')
+          : t('Live Wallpaper Studio needs to install its runtime into the IDE once (after that, switching wallpapers needs no reload).');
         if (!wasInstalled || autoRepair) {
-          vscode.window.showInformationMessage(msg, wasInstalled ? 'Áp dụng lại' : 'Cài đặt & Reload', 'Để sau').then((pick) => {
-            if (pick && pick !== 'Để sau') this.install(true);
+          vscode.window.showInformationMessage(msg, wasInstalled ? t('Re-apply') : t('Install & Reload'), t('Later')).then((pick) => {
+            if (pick && pick !== t('Later')) this.install(true);
           });
         }
       } else if (st.version !== this.version) {
@@ -419,7 +420,7 @@ export class Controller implements vscode.Disposable {
         this.runtimeStatus = 'needsReload';
         this.updateStatusBar();
         this.changeEmitter.fire();
-        vscode.window.showInformationMessage('Đã cài Live Wallpaper Studio. Reload cửa sổ để bật ảnh nền.', 'Reload ngay').then((p) => {
+        vscode.window.showInformationMessage(t('Live Wallpaper Studio is installed. Reload the window to turn the wallpaper on.'), t('Reload now')).then((p) => {
           if (p) vscode.commands.executeCommand('workbench.action.reloadWindow');
         });
       }
@@ -430,15 +431,15 @@ export class Controller implements vscode.Disposable {
       if (err.code === 'EPERM' || err.code === 'EACCES' || err.code === 'EROFS') {
         const help = patcher.permissionHelp(this.appRoot(), path.join(this.ctx.extensionPath, 'dist', 'cli.js'), process.execPath);
         this.runtimeError = help.reason;
-        const buttons = help.command ? ['Sao chép lệnh sửa'] : [];
+        const buttons = help.command ? [t('Copy fix command')] : [];
         vscode.window
-          .showErrorMessage(`Không ghi được file của IDE (${err.code}). ${help.reason}${help.command ? ' Chạy lệnh đã sao chép trong terminal (quyền quản trị) rồi Reload.' : ''}`, ...buttons)
+          .showErrorMessage(t("Can't write the IDE's files ({0}). {1}", err.code ?? '', help.reason) + (help.command ? t(' Run the copied command in a terminal (as administrator), then reload.') : ''), ...buttons)
           .then((b) => {
             if (b && help.command) vscode.env.clipboard.writeText(help.command);
           });
       } else {
         this.runtimeError = err.message;
-        vscode.window.showErrorMessage('Cài runtime thất bại: ' + this.runtimeError);
+        vscode.window.showErrorMessage(t('Installing the runtime failed: {0}', this.runtimeError));
       }
       this.updateStatusBar();
       this.changeEmitter.fire();
@@ -447,18 +448,18 @@ export class Controller implements vscode.Disposable {
   }
 
   async uninstallRuntime() {
-    const pick = await vscode.window.showWarningMessage('Gỡ runtime ảnh nền khỏi IDE? Thư viện ảnh của bạn được giữ nguyên.', { modal: true }, 'Gỡ');
-    if (pick !== 'Gỡ') return;
+    const pick = await vscode.window.showWarningMessage(t('Remove the wallpaper runtime from the IDE? Your image library is kept.'), { modal: true }, t('Remove'));
+    if (pick !== t('Remove')) return;
     try {
       patcher.uninstall(this.appRoot());
       this.ctx.globalState.update('everInstalled', false);
       this.runtimeStatus = 'notInstalled';
       this.updateStatusBar();
       this.changeEmitter.fire();
-      const r = await vscode.window.showInformationMessage('Đã khôi phục IDE gốc. Reload để hoàn tất.', 'Reload ngay');
+      const r = await vscode.window.showInformationMessage(t('The IDE has been restored. Reload to finish.'), t('Reload now'));
       if (r) vscode.commands.executeCommand('workbench.action.reloadWindow');
     } catch (e) {
-      vscode.window.showErrorMessage('Gỡ thất bại: ' + (e as Error).message);
+      vscode.window.showErrorMessage(t('Removal failed: {0}', (e as Error).message));
     }
   }
 
@@ -499,7 +500,7 @@ export class Controller implements vscode.Disposable {
       if (fullscreen?.random) s.rotate.order = 'shuffle';
     });
     await this.ctx.globalState.update('migrated', true);
-    if (added.length) vscode.window.showInformationMessage(`Live Wallpaper Studio: đã chuyển ${added.length} ảnh từ cấu hình cũ vào thư viện ${this.libraryDir}.`);
+    if (added.length) vscode.window.showInformationMessage(t('Live Wallpaper Studio: moved {0} image(s) from your old settings into the library {1}.', added.length, this.libraryDir));
   }
 
   state(): WallpaperState {
@@ -513,9 +514,9 @@ export class Controller implements vscode.Disposable {
 
 export function formatDuration(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000));
-  if (s < 60) return `${s} giây`;
+  if (s < 60) return t('{0} sec', s);
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} phút ${s % 60 ? (s % 60) + ' giây' : ''}`.trim();
+  if (m < 60) return (t('{0} min', m) + (s % 60 ? ' ' + t('{0} sec', s % 60) : ''));
   const h = Math.floor(m / 60);
-  return `${h} giờ ${m % 60 ? (m % 60) + ' phút' : ''}`.trim();
+  return t('{0} h', h) + (m % 60 ? ' ' + t('{0} min', m % 60) : '');
 }

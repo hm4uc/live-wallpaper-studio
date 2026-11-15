@@ -7,6 +7,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { THEMES } from '../shared/themes';
+import { t as tr } from '../shared/i18n';
 import type { ItemKind, WallpaperItem } from '../shared/types';
 import { toVscodeFileUrl } from './url';
 
@@ -186,7 +187,7 @@ export function buildItems(files: ScannedFile[], meta: LibraryMeta): WallpaperIt
   for (const t of THEMES) {
     if (meta.hiddenThemes.includes(t.id)) continue;
     const m = meta.items['theme:' + t.id] ?? {};
-    const it: WallpaperItem = { id: 'theme:' + t.id, kind: 'theme', name: t.name, theme: t.id };
+    const it: WallpaperItem = { id: 'theme:' + t.id, kind: 'theme', name: tr(t.name), theme: t.id };
     if (m.favorite) it.favorite = true;
     if (typeof m.opacity === 'number') it.opacity = m.opacity;
     if (m.period) it.period = m.period;

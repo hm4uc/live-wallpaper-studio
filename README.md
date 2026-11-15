@@ -1,86 +1,92 @@
 # Live Wallpaper Studio
 
-Ảnh nền, GIF, video và **pixel theme động** cho **VS Code** và **Antigravity IDE** (cùng các bản fork khác của VS Code).
-Chọn ảnh bằng giao diện, **đổi tức thì không cần reload**, tự đổi theo lịch. Chạy trên Windows, macOS và Linux.
+Wallpapers, GIFs, videos and **animated pixel themes** for **VS Code** and **Antigravity IDE** (and other VS Code forks).
+Pick one from a visual gallery, **switch instantly without reloading**, and let it rotate on a schedule. Works on Windows, macOS and Linux.
 
-> *English summary:* background images / GIFs / videos / animated pixel themes for VS Code and Antigravity IDE (and other VS Code forks). Visual picker with live preview, instant switching (no reload after the one-time setup), rotation schedules, day/night playlists, per-project wallpapers. Windows, macOS, Linux.
+![Code Rain pixel theme behind a light VS Code, with the wallpaper picker open](media/readme/code-rain.gif)
 
-## Tính năng
+![City Rain pixel theme behind a light VS Code](media/readme/city-rain.gif)
 
-- **Bộ chọn trực quan** (`Ctrl+Alt+W`): lưới thumbnail, dùng `← →` để xem trước trực tiếp trên IDE, `Enter` để áp dụng, `Esc` để quay về ảnh cũ.
-- **Đổi tức thì**: chỉ cần reload 1 lần lúc cài. Sau đó mọi thao tác (đổi ảnh, chỉnh thanh trượt, tự đổi) áp dụng ngay lập tức.
-- **Thư viện là một thư mục thường**: `<thư mục Ảnh>/IDE Wallpapers` (Windows đọc vị trí thư mục Ảnh thật nhưng bỏ qua OneDrive; Linux theo XDG; nếu không có thì dùng `~/IDE Wallpapers`). Thả file vào là ảnh hiện ngay. Có thể thêm bằng nút ＋, kéo thả, hoặc dán URL.
-- **Hỗ trợ** PNG, JPG, WebP, BMP, SVG, AVIF, **GIF**, **MP4**, **WebM**, MOV.
-- **6 pixel theme vẽ bằng code** (nhẹ hơn GIF rất nhiều): Mưa phố, Trời sao, Tuyết rơi, Hoa mai Tết, Đèn lồng, Mưa mã. Có thanh trượt *Mật độ* và *Tốc độ*.
-- **Hai chế độ hiển thị**:
-  - *Phủ mờ*: lớp ảnh mờ phủ lên trên, hợp với mọi theme.
-  - *Xuyên khung*: ảnh nằm phía sau, editor/sidebar/terminal trong suốt theo thanh *Độ đục khung*.
-- **Tự đổi ảnh**: chu kỳ từ 1 phút đến 3 giờ, lần lượt hoặc ngẫu nhiên (không lặp lại cho đến khi hết vòng), có thể chỉ xoay vòng ảnh ★. Nhiều cửa sổ IDE luôn hiển thị cùng một ảnh.
-- **Ngày / đêm**: gắn ảnh ☀ hoặc ☾, IDE tự đổi theo giờ.
-- **Ảnh riêng cho từng project**.
-- **Tiết kiệm tài nguyên**: GIF bị đóng băng và video/theme tạm dừng khi IDE không có focus. Tôn trọng chế độ *giảm chuyển động* của hệ điều hành. Có thể chuyển GIF nặng sang MP4 bằng ffmpeg.
+<sub>VS Code, *Light Modern* theme, *See-through* mode: **Code Rain** (top) and **City Rain** (bottom).</sub>
 
-## Phím tắt
+## Features
 
-| Thao tác | Windows / Linux | macOS |
+- **Visual picker** (`Ctrl+Alt+W`): a thumbnail grid in the panel. Use `← →` to preview live on the IDE, `Enter` to apply, `Esc` to go back to the previous wallpaper.
+- **Instant switching**: one reload when you first install. After that, everything (changing the wallpaper, moving a slider, auto-rotation) applies immediately.
+- **Your library is a plain folder**: `<Pictures>/IDE Wallpapers` (on Windows the real Pictures folder is used, but OneDrive is skipped; on Linux XDG is respected; otherwise `~/IDE Wallpapers`). Drop a file in and it shows up right away. You can also add files with the ＋ button, drag and drop, or paste a URL.
+- **Formats**: PNG, JPG, WebP, BMP, SVG, AVIF, **GIF**, **MP4**, **WebM**, MOV.
+- **6 pixel themes drawn in code** (far lighter than a GIF): City Rain, Starry Night, Snowfall, Tết Blossoms, Lanterns, Code Rain. Each has *Density* and *Speed* sliders.
+- **Two display modes**:
+  - *Overlay*: a faint layer on top of the whole IDE, works with any theme.
+  - *See-through*: the wallpaper sits behind the IDE, and the editor, sidebar and terminal become translucent (adjust with *Frame opacity*).
+- **Auto-rotation**: every 1 minute to 3 hours, in order or shuffled (no repeats until every image has been shown), optionally only your ★ favorites. All IDE windows always show the same wallpaper.
+- **Day / night**: tag images ☀ or ☾ and the IDE switches by the time of day.
+- **Per-project wallpapers**: give a project its own wallpaper.
+- **Easy on resources**: GIFs freeze and videos/themes pause when the IDE loses focus. The OS *reduce motion* setting is respected. Heavy GIFs can be converted to MP4 with ffmpeg.
+- **English and Vietnamese** UI. It follows the IDE display language, or set `wallpaperStudio.language`.
+
+## Keyboard shortcuts
+
+| Action | Windows / Linux | macOS |
 |---|---|---|
-| Mở bộ chọn | `Ctrl+Alt+W` | `⌃⌥W` |
-| Ảnh kế / trước | `Ctrl+Alt+]` / `Ctrl+Alt+[` | `⌃⌥]` / `⌃⌥[` |
-| Bật / tắt nền | `Ctrl+Alt+0` | `⌃⌥0` |
+| Open the picker | `Ctrl+Alt+W` | `⌃⌥W` |
+| Next / previous wallpaper | `Ctrl+Alt+]` / `Ctrl+Alt+[` | `⌃⌥]` / `⌃⌥[` |
+| Turn the wallpaper on / off | `Ctrl+Alt+0` | `⌃⌥0` |
 
-Trong bộ chọn: `← → ↑ ↓` xem trước · `Enter` áp dụng · `Esc` huỷ và đóng · `F` yêu thích · `Delete` xoá · gõ chữ để tìm · chuột phải để mở thêm tuỳ chọn.
+In the picker: `← → ↑ ↓` preview · `Enter` apply · `Esc` cancel and close · `F` favorite · `Delete` delete · type to search · right-click for more options.
 
-Nếu bàn phím của bạn dùng AltGr (ví dụ bố cục Đức hoặc Ba Lan), `Ctrl+Alt+…` có thể trùng với việc gõ ký tự. Bạn có thể đổi phím trong *Keyboard Shortcuts* bằng cách tìm `wallpaperStudio`.
+If your keyboard layout uses AltGr (for example German or Polish), `Ctrl+Alt+…` can clash with typing characters. Rebind the keys in *Keyboard Shortcuts* by searching for `wallpaperStudio`.
 
-## Cài đặt lần đầu
+## Getting started
 
-1. Cài extension.
-2. Bấm **Cài đặt & Reload** ở thông báo hiện lên (hoặc chạy lệnh `Wallpaper: Cài đặt / sửa lại runtime`).
-3. Xong. Từ giờ không cần reload nữa.
+1. Install the extension.
+2. Click **Install & Reload** in the notification (or run the command `Wallpaper: Install / Repair Runtime`).
+3. Done. No more reloads from now on.
 
-Nếu bạn đang dùng extension `shalldie.background`, cấu hình ảnh của nó sẽ được tự động chuyển vào thư viện, và bản patch cũ sẽ được gỡ để tránh hai lớp nền chồng lên nhau.
+If you use the `shalldie.background` extension, its image settings are moved into your library automatically, and its old patch is removed so the two backgrounds don't stack.
 
-### Vì sao cần "cài runtime"?
+### Why "install a runtime"?
 
-VS Code không cho extension vẽ lên giao diện chính. Live Wallpaper Studio thêm **một lần** một đoạn script nhỏ (~21KB) vào file giao diện của IDE. Đoạn script này không chứa đường dẫn ảnh nào, nó chỉ đọc file cấu hình `state.json` rồi vẽ theo. Vì vậy đổi ảnh không cần sửa file IDE thêm lần nào nữa.
+VS Code doesn't let extensions draw on the main window. Live Wallpaper Studio adds a small script (~22 KB) to the IDE's UI file **once**. The script contains no image paths: it only reads a settings file (`state.json`) and draws accordingly, so changing wallpapers never touches the IDE's files again.
 
-- Checksum trong `product.json` được cập nhật theo, nên IDE **không** báo "installation corrupt" (sau lần khởi động lại đầu tiên).
-- File gốc được sao lưu (`*.wallpaper-studio.bak`). Lệnh `Wallpaper: Gỡ runtime` khôi phục IDE về nguyên bản, và gỡ extension cũng tự khôi phục.
-- Sau khi IDE **tự cập nhật**, bản patch sẽ mất. Extension sẽ hỏi *Áp dụng lại* (1 click).
+- The checksum in `product.json` is updated too, so the IDE does **not** report "installation corrupt" (after the first restart).
+- The original file is backed up (`*.wallpaper-studio.bak`). The command `Wallpaper: Remove Runtime and Restore the IDE` puts the IDE back exactly as it was, and uninstalling the extension does the same automatically.
+- When the IDE **updates itself**, the patch is lost. The extension then offers to *Re-apply* it (1 click).
 
-### Quyền ghi theo hệ điều hành
+### Write permissions by OS
 
-| Hệ điều hành | Thường gặp | Cách xử lý |
+| OS | Typical case | What to do |
 |---|---|---|
-| Windows (cài cho user) | Không cần làm gì | — |
-| Windows (Program Files) | Cần quyền Admin | Bấm *Sao chép lệnh sửa*, rồi dán vào PowerShell chạy bằng quyền Administrator |
-| macOS | Thường không cần làm gì | Nếu app thuộc tài khoản khác: *Sao chép lệnh sửa* (sudo) |
-| Linux (.deb/.rpm) | Thư mục thuộc quyền root | *Sao chép lệnh sửa* (sudo) |
-| Linux Snap / Flatpak | Hệ thống file chỉ-đọc | Không hỗ trợ. Hãy dùng bản .deb/.rpm/.tar.gz |
+| Windows (user install) | Nothing needed | — |
+| Windows (Program Files) | Needs Administrator rights | Click *Copy fix command*, then paste it into PowerShell run as Administrator |
+| macOS | Usually nothing needed | If the app belongs to another account: *Copy fix command* (sudo) |
+| Linux (.deb / .rpm) | The folder is owned by root | *Copy fix command* (sudo) |
+| Linux Snap / Flatpak | Read-only file system | Not supported. Use the .deb / .rpm / .tar.gz build |
 
-## Giới hạn đã biết
+## Known limitations
 
-- Các panel do IDE vẽ bằng webview riêng (ví dụ panel Agent của Antigravity) giữ nguyên nền của chúng ở chế độ *Xuyên khung*.
-- Ở chế độ *Xuyên khung*, terminal chỉ trong suốt khi tắt GPU cho terminal. Extension sẽ hỏi bạn 1 lần.
-- GIF nhỏ (dưới ~900×500) giữ nguyên dạng GIF lại nhẹ CPU hơn video (đã đo). GIF độ phân giải lớn được đánh dấu ⚡: chuyển sang MP4 giúp giảm khoảng 35% CPU.
+- Panels the IDE draws in their own webview (for example Antigravity's Agent panel) keep their own background in *See-through* mode.
+- In *See-through* mode the terminal is only transparent when terminal GPU acceleration is off. The extension asks you once.
+- Small GIFs (under ~900×500) use less CPU as GIF than as video (measured). High-resolution GIFs are marked ⚡: converting them to MP4 cuts CPU use by about 35%.
 
-## Cấu hình
+## Settings
 
-| Setting | Mặc định | Ý nghĩa |
+| Setting | Default | Meaning |
 |---|---|---|
-| `wallpaperStudio.libraryPath` | (tự chọn, xem trên) | Thư mục thư viện ảnh |
-| `wallpaperStudio.ffmpegPath` | (tự tìm) | Đường dẫn ffmpeg |
-| `wallpaperStudio.statusBar` | `true` | Hiện nút trên thanh trạng thái |
-| `wallpaperStudio.autoRepair` | `true` | Hỏi cài lại khi IDE cập nhật |
+| `wallpaperStudio.libraryPath` | (automatic, see above) | Wallpaper library folder |
+| `wallpaperStudio.ffmpegPath` | (search `PATH`) | Path to ffmpeg |
+| `wallpaperStudio.statusBar` | `true` | Show the status bar button |
+| `wallpaperStudio.autoRepair` | `true` | Offer to reinstall after an IDE update |
+| `wallpaperStudio.language` | `auto` | UI language: `auto` (follow the IDE), `en`, `vi` |
 
-## Riêng tư
+## Privacy
 
-Không thu thập hay gửi dữ liệu nào. Mạng chỉ được dùng khi bạn chủ động *Thêm từ URL*.
+No data is collected or sent anywhere. The network is only used when you choose *Add from URL*.
 
-## Đóng góp / báo lỗi
+## Feedback & issues
 
 https://github.com/hm4uc/live-wallpaper-studio/issues
 
-## Giấy phép
+## License
 
 MIT

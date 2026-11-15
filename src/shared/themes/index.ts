@@ -91,7 +91,7 @@ function makeTheme<P>(opts: {
   };
 }
 
-// ---------------------------------------------------------------- Mưa phố
+// ---------------------------------------------------------------- City rain
 interface Drop { x: number; y: number; v: number; len: number; splash: number; sx: number; sy: number }
 const rain = makeTheme<Drop>({
   bg: [[0, '#0b1220'], [0.65, '#16243a'], [1, '#1f3049']],
@@ -139,7 +139,7 @@ const rain = makeTheme<Drop>({
   },
 });
 
-// ---------------------------------------------------------------- Trời sao
+// ---------------------------------------------------------------- Starry night
 interface Star { x: number; y: number; ph: number; f: number; b: number; shoot: number; vx: number; vy: number }
 const stars = makeTheme<Star>({
   bg: [[0, '#070a1f'], [0.6, '#151640'], [1, '#2a1f4f']],
@@ -187,7 +187,7 @@ const stars = makeTheme<Star>({
   },
 });
 
-// ---------------------------------------------------------------- Tuyết
+// ---------------------------------------------------------------- Snow
 interface Flake { x: number; y: number; v: number; ph: number; s: number }
 const snow = makeTheme<Flake>({
   bg: [[0, '#0e1d2b'], [0.7, '#1c3346'], [1, '#2b4a5e']],
@@ -215,7 +215,7 @@ const snow = makeTheme<Flake>({
   },
 });
 
-// ---------------------------------------------------------------- Hoa mai Tết
+// ---------------------------------------------------------------- Tết apricot blossoms
 interface Petal { x: number; y: number; v: number; ph: number; big: boolean }
 const mai = makeTheme<Petal>({
   bg: [[0, '#3a0d12'], [0.6, '#5b1717'], [1, '#7a2a12']],
@@ -264,7 +264,7 @@ const mai = makeTheme<Petal>({
   },
 });
 
-// ---------------------------------------------------------------- Đèn lồng Hội An
+// ---------------------------------------------------------------- Hội An lanterns
 interface Lantern { x: number; y: number; v: number; ph: number; c: number }
 const LANTERN_COLORS = [['#e63946', '#ff8a80'], ['#f4a261', '#ffd6a5'], ['#ffbe0b', '#fff3b0'], ['#d62868', '#ff9ec7']];
 const lanterns = makeTheme<Lantern>({
@@ -311,7 +311,7 @@ const lanterns = makeTheme<Lantern>({
   },
 });
 
-// ---------------------------------------------------------------- Mưa mã
+// ---------------------------------------------------------------- Code rain
 interface Column { x: number; y: number; v: number; len: number }
 const coderain = makeTheme<Column>({
   bg: [[0, '#020604'], [1, '#04140b']],
@@ -336,12 +336,12 @@ const coderain = makeTheme<Column>({
 });
 
 export const THEMES: ThemeDef[] = [
-  { id: 'rain', name: 'Mưa phố', accent: '#8cb4eb', create: rain },
-  { id: 'stars', name: 'Trời sao', accent: '#b9b4ff', create: stars },
-  { id: 'snow', name: 'Tuyết rơi', accent: '#d7e6f0', create: snow },
-  { id: 'mai', name: 'Hoa mai Tết', accent: '#ffd23f', create: mai },
-  { id: 'lanterns', name: 'Đèn lồng', accent: '#f4a261', create: lanterns },
-  { id: 'coderain', name: 'Mưa mã', accent: '#28dc6e', create: coderain },
+  { id: 'rain', name: 'City Rain', accent: '#8cb4eb', create: rain },
+  { id: 'stars', name: 'Starry Night', accent: '#b9b4ff', create: stars },
+  { id: 'snow', name: 'Snowfall', accent: '#d7e6f0', create: snow },
+  { id: 'mai', name: 'Tết Blossoms', accent: '#ffd23f', create: mai },
+  { id: 'lanterns', name: 'Lanterns', accent: '#f4a261', create: lanterns },
+  { id: 'coderain', name: 'Code Rain', accent: '#28dc6e', create: coderain },
 ];
 
 export function getTheme(id: string | undefined): ThemeDef | undefined {

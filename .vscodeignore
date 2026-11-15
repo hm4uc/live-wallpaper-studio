@@ -8,3 +8,5 @@ vitest.config.mjs
 .gitignore
 *.vsix
 .env
+media/readme/**
+.github/**
