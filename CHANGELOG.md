@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- New animated previews on the marketplace page, recorded in Antigravity IDE with a dark theme.
+
 ## 1.1.0
 
 - **English UI.** The picker, messages, status bar, commands and settings are now in English, and Vietnamese is still fully supported. The language follows the IDE display language, or set `wallpaperStudio.language` (`auto` / `en` / `vi`).
