@@ -97,21 +97,34 @@ body.ws-behind .monaco-workbench{background-color:transparent !important;}
   }
 
   // ------------------------------------------------------------------ frame translucency (behind mode)
-  const FRAME_VARS = [
-    'editor-background', 'editorGutter-background', 'editorPane-background', 'editorStickyScroll-background', 'breadcrumb-background',
-    'sideBar-background', 'sideBarSectionHeader-background', 'sideBarStickyScroll-background', 'sideBarTitle-background',
-    'activityBar-background', 'panel-background', 'panelStickyScroll-background', 'terminal-background', 'statusBar-background',
-    'statusBar-noFolderBackground', 'titleBar-activeBackground', 'titleBar-inactiveBackground', 'tab-activeBackground',
-    'tab-inactiveBackground', 'tab-unfocusedActiveBackground', 'tab-unfocusedInactiveBackground', 'editorGroupHeader-tabsBackground',
-    'editorGroupHeader-noTabsBackground', 'minimap-background', 'auxiliaryBar-background', 'welcomePage-background',
-    'notebook-editorBackground', 'banner-background',
-    // VS Code "modern UI" (floating panels): the shell behind the floating cards.
-    'modernUI-shellBackground',
-  ];
-  /** Non-`--vscode-` variables VS Code resolves on the workbench element. */
-  const RAW_VARS = ['--modern-ui-shell-background'];
-  /** Painted inside / underneath an already-tinted part → fully transparent. */
-  const NESTED_VARS = new Set(['editor-background', 'editorGutter-background', 'modernUI-shellBackground', '--modern-ui-shell-background']);
+  // Each colour gets a role, so translucent layers never stack into lighter/darker patches:
+  //  frame  – outer surfaces (one per screen area): alpha × frameOpacity
+  //  nested – painted inside / underneath a frame surface: fully transparent
+  //  accent – highlights that must stay visible (active tab, current line, inputs): a light tint
+  type Role = 'frame' | 'nested' | 'accent';
+  const VAR_ROLES: Record<string, Role> = {
+    'sideBar-background': 'frame', 'activityBar-background': 'frame', 'panel-background': 'frame', 'auxiliaryBar-background': 'frame',
+    'statusBar-background': 'frame', 'statusBar-noFolderBackground': 'frame', 'titleBar-activeBackground': 'frame',
+    'titleBar-inactiveBackground': 'frame', 'banner-background': 'frame', 'editorStickyScroll-background': 'frame',
+    'sideBarStickyScroll-background': 'frame', 'panelStickyScroll-background': 'frame',
+    'editor-background': 'nested', 'editorGutter-background': 'nested', 'editorPane-background': 'nested', 'breadcrumb-background': 'nested',
+    'sideBarSectionHeader-background': 'nested', 'sideBarTitle-background': 'nested', 'panelSectionHeader-background': 'nested',
+    'terminal-background': 'nested', 'editorGroupHeader-tabsBackground': 'nested', 'editorGroupHeader-noTabsBackground': 'nested',
+    'tab-inactiveBackground': 'nested', 'tab-unfocusedInactiveBackground': 'nested', 'minimap-background': 'nested',
+    'welcomePage-background': 'nested', 'notebook-editorBackground': 'nested', 'modernUI-shellBackground': 'nested',
+    'tab-activeBackground': 'accent', 'tab-unfocusedActiveBackground': 'accent', 'tab-selectedBackground': 'accent', 'tab-hoverBackground': 'accent',
+    'editor-lineHighlightBackground': 'accent', 'editor-lineHighlightBorder': 'accent', 'input-background': 'accent',
+    'dropdown-background': 'accent', 'commandCenter-background': 'accent', 'commandCenter-activeBackground': 'accent',
+  };
+  /** VS Code "modern UI" defines its own `--modern-ui-*` colours (some inline on the workbench). */
+  function modernRole(name: string): Role | null {
+    if (/foreground|border|glass|solid|dialog|menu|quick-input|notification|shadow|sash|grip|badge/.test(name)) return null; // overlays & lines stay
+    if (!/background|surface|strip/.test(name)) return null;
+    return /active|hover|selected|current/.test(name) && !/shell/.test(name) ? 'accent' : 'nested';
+  }
+  function roleAlpha(role: Role, a: number, frame: number): number {
+    return role === 'nested' ? 0 : role === 'frame' ? a * frame : a * frame * 0.5;
+  }
   let frameKey = '';
   function parseColor(c: string): [number, number, number, number] | null {
     c = c.trim();
@@ -185,24 +198,29 @@ body.ws-behind .monaco-workbench{background-color:transparent !important;}
     const cs = getComputedStyle(wb);
     const rules: string[] = [];
     let base: string | null = null;
-    for (const v of FRAME_VARS) {
+    const f = display.frameOpacity;
+    for (const [v, role] of Object.entries(VAR_ROLES)) {
       const col = parseColor(cs.getPropertyValue('--vscode-' + v));
       if (!col) continue;
       if (v === 'editor-background') base = `rgb(${col[0]},${col[1]},${col[2]})`;
-      const a = NESTED_VARS.has(v) ? 0 : col[3] * display.frameOpacity;
-      rules.push(`--vscode-${v}:rgba(${col[0]},${col[1]},${col[2]},${a.toFixed(3)});`);
+      rules.push(`--vscode-${v}:rgba(${col[0]},${col[1]},${col[2]},${roleAlpha(role, col[3], f).toFixed(3)});`);
     }
-    for (const v of RAW_VARS) {
-      const col = parseColor(cs.getPropertyValue(v));
-      // set inline on the workbench element by VS Code → only !important wins
-      if (col) rules.push(`${v}:rgba(${col[0]},${col[1]},${col[2]},${NESTED_VARS.has(v) ? 0 : (col[3] * display.frameOpacity).toFixed(3)}) !important;`);
+    for (let i = 0; i < cs.length; i++) {
+      const v = cs[i];
+      if (!v.startsWith('--modern-ui-')) continue;
+      const role = modernRole(v);
+      const col = role && parseColor(cs.getPropertyValue(v));
+      // some are set inline on the workbench element by VS Code → only !important wins
+      if (role && col) rules.push(`${v}:rgba(${col[0]},${col[1]},${col[2]},${roleAlpha(role, col[3], f).toFixed(3)}) !important;`);
     }
     root.style.backgroundColor = base ?? '#1e1e1e';
-    // The minimap canvas paints an opaque background → fade it a bit. The terminal is
-    // transparent with the DOM renderer (the extension offers to switch GPU off for it).
+    // The minimap canvas paints an opaque background of its own (and sits in an isolated
+    // stacking context, so blend modes can't help) → keep it faint so it doesn't form a block.
+    // The terminal is transparent with the DOM renderer (the extension offers to switch GPU off).
     frameStyle.textContent = `.monaco-workbench.monaco-workbench{${rules.join('')}}
 body.ws-behind .monaco-workbench.modern-ui .monaco-pane-view .pane,body.ws-behind .monaco-workbench.modern-ui .monaco-pane-view .pane>.pane-header:not(:hover),body.ws-behind .monaco-workbench .part .monaco-list-rows{background-color:transparent !important;}
-body.ws-behind .monaco-workbench .minimap canvas{opacity:${Math.max(0.4, display.frameOpacity).toFixed(2)};}
+body.ws-behind .monaco-workbench .minimap canvas{opacity:${Math.min(0.5, Math.max(0.2, f * 0.45)).toFixed(2)};}
+body.ws-behind .monaco-workbench .monaco-editor .view-overlays .current-line,body.ws-behind .monaco-workbench .monaco-editor .margin-view-overlays .current-line{opacity:.45;}
 body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-workbench .xterm .xterm-scrollable-element{background-color:transparent !important;}`;
   }
 

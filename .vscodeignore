@@ -10,3 +10,4 @@ vitest.config.mjs
 .env
 media/readme/**
 .github/**
+README.md

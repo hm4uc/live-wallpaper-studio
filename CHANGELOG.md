@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2
+
+- *See-through* mode looks even on light themes and in VS Code: nested surfaces (tab bar, breadcrumbs, sidebar headers, lists, VS Code modern-UI tabs) no longer stack into lighter or darker patches.
+- Highlights stay subtle: the active tab, current line, inputs and the command center get a light tint instead of a solid block. The minimap no longer forms a bright rectangle.
+- The picker's search box and dropdowns are translucent, so they don't punch holes in the wallpaper.
+- New GitHub README. The marketplace page has its own extension-focused README with a commands table.
+
 ## 1.1.1
 
 - New animated previews on the marketplace page, recorded in Antigravity IDE with a dark theme.
