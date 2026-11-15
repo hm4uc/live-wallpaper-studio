@@ -37,7 +37,7 @@ jobs:
       - name: Package VSIX
         id: pkg
         run: |
-          npx vsce package --no-dependencies
+          npx vsce package --no-dependencies --readme-path README.marketplace.md
           VSIX=$(ls *.vsix)
           echo "vsix=$VSIX" >> "$GITHUB_OUTPUT"
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"

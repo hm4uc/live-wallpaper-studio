@@ -201,7 +201,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
-    "package": "npm run typecheck && npm run build && vsce package --no-dependencies",
+    "package": "npm run typecheck && npm run build && vsce package --no-dependencies --readme-path README.marketplace.md",
     "vscode:uninstall": "node ./dist/uninstall.js",
     "release:patch": "npm version patch -m \"Release v%s\" && git push --follow-tags",
     "release:minor": "npm version minor -m \"Release v%s\" && git push --follow-tags",

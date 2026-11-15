@@ -39,10 +39,13 @@ button.icon:focus-visible { outline: 1px solid var(--accent); }
 .banner button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: 0; border-radius: 4px; padding: 4px 12px; }
 .banner button:hover { background: var(--vscode-button-hoverBackground); }
 
+/* Translucent fields: the panel may sit over a wallpaper ("See-through" mode), and a solid
+   white/black box would punch a hole in it. The border keeps the field readable. */
 input.url, input.search, select, input[type=time] {
-  background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border, transparent); border-radius: 4px; padding: 3px 6px; font: inherit;
+  background: color-mix(in srgb, var(--vscode-input-background) 35%, transparent); color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--surface-2)); border-radius: 4px; padding: 3px 6px; font: inherit;
 }
+select option { background: var(--vscode-dropdown-background, var(--vscode-input-background)); color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground)); }
 input.url { width: 100%; }
 input:focus-visible, select:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
 
