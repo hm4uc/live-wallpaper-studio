@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0
 
 - **Keeps playing when the IDE isn't focused.** GIFs, videos and pixel themes no longer freeze when you switch to another app; they still pause when the IDE is minimized or hidden. *Pause when the IDE is not focused* is now off by default (existing installs are switched once) and can be turned back on in the picker.
 - **Cheaper blur.** Blurred wallpapers are drawn into a small canvas and upscaled by the GPU instead of re-blurring the whole screen on every frame. Still images are blurred once; GIFs are decoded with `ImageDecoder`.
