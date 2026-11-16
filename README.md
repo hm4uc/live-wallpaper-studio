@@ -39,6 +39,7 @@
 - [FAQ & troubleshooting](#faq--troubleshooting)
 - [Development](#development)
 - [Contributing](#contributing)
+- [Support the project](#support-the-project)
 - [License](#license)
 
 ## Why Live Wallpaper Studio?
@@ -233,6 +234,17 @@ Releases are automated. `npm run release:patch` (or `minor` / `major`) bumps the
 ## Contributing
 
 Bug reports, ideas and pull requests are welcome. For larger changes, please [open an issue](https://github.com/hm4uc/live-wallpaper-studio/issues) first. New pixel themes are especially welcome: see `src/shared/themes/`.
+
+## Support the project
+
+Live Wallpaper Studio is free and open source. If it makes your editor a nicer place, you can buy me a coffee ☕
+
+| 🇻🇳 Việt Nam: VietQR (mọi app ngân hàng) |
+|:---:|
+| <img src="media/readme/donate-vietqr-tpbank.png" width="220" alt="VietQR TPBank 10987659609 HOANG MINH DUC"> |
+| **TPBank** · `10987659609` · **HOANG MINH DUC** |
+
+Quét mã bằng app ngân hàng bất kỳ (hoặc chuyển khoản theo số tài khoản trên). Cảm ơn bạn rất nhiều! 💛
 
 ## Star history
 
