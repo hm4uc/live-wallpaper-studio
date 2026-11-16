@@ -120,6 +120,12 @@ export async function activate(ctx: vscode.ExtensionContext) {
   });
 
   await ctl.start();
+
+  // First run: open the picker so new users find it right away (it lives in the Activity Bar).
+  if (!ctx.globalState.get<boolean>('pickerShown')) {
+    await ctx.globalState.update('pickerShown', true);
+    picker.reveal();
+  }
 }
 
 export function deactivate() {

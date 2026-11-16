@@ -168,7 +168,7 @@ export class PickerProvider implements vscode.WebviewViewProvider, vscode.Dispos
         break;
       case 'close':
         c.preview(null);
-        await vscode.commands.executeCommand('workbench.action.closePanel');
+        await vscode.commands.executeCommand('workbench.action.closeSidebar');
         break;
     }
   }

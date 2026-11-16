@@ -13,7 +13,7 @@ Pick one from a visual gallery, **switch instantly without reloading**, and let 
 
 ## Features
 
-- **Visual picker** (`Ctrl+Alt+W`): a thumbnail grid in the panel. Use `← →` to preview live on the IDE, `Enter` to apply, `Esc` to go back to the previous wallpaper.
+- **Visual picker** (`Ctrl+Alt+W`): a thumbnail grid in the sidebar (wallpaper icon in the Activity Bar; opens automatically after install). Use `← →` to preview live on the IDE, `Enter` to apply, `Esc` to go back to the previous wallpaper.
 - **Instant switching**: one reload when you first install. After that, everything (changing the wallpaper, moving a slider, auto-rotation) applies immediately.
 - **Your library is a plain folder**: `<Pictures>/IDE Wallpapers` (on Windows the real Pictures folder is used, but OneDrive is skipped; on Linux XDG is respected; otherwise `~/IDE Wallpapers`). Drop a file in and it shows up right away. You can also add files with the ＋ button, drag and drop, or paste a URL.
 - **Formats**: PNG, JPG, WebP, BMP, SVG, AVIF, **GIF**, **MP4**, **WebM**, MOV.
@@ -45,7 +45,7 @@ Open the Command Palette (`Ctrl+Shift+P` / `⌘⇧P`) and type **Wallpaper**:
 
 | Command | What it does |
 |---|---|
-| Open Wallpaper Picker | Show the gallery in the panel (`Ctrl+Alt+W`) |
+| Open Wallpaper Picker | Show the gallery in the sidebar (`Ctrl+Alt+W`) |
 | Next / Previous / Random Wallpaper | Switch right away |
 | Toggle Wallpaper On / Off | Hide or show the wallpaper (`Ctrl+Alt+0`) |
 | Quick Menu | Everything in one list (also the status bar button) |

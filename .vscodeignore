@@ -11,3 +11,6 @@ vitest.config.mjs
 media/readme/**
 .github/**
 README.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
