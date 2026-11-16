@@ -6,7 +6,7 @@ import * as patcher from '../src/core/patcher';
 import { buildItems, ensureServed, gifSize, importFiles, isHeavyGif, mergeMeta, kindForExt, readMeta, scanLibrary, uniqueTarget } from '../src/core/library';
 import { StateStore, defaultProfileStorage } from '../src/core/stateStore';
 import { fileNameFromUrl } from '../src/core/media';
-import { toVscodeFileUrl } from '../src/runtime/url';
+import { manifestLists, toVscodeFileUrl } from '../src/runtime/url';
 import { THEMES } from '../src/shared/themes';
 
 let tmp: string;
@@ -46,6 +46,16 @@ describe('patcher', () => {
     patcher.uninstall(app);
     expect(wbOf(app)).toBe(ORIGINAL);
     expect(patcher.getStatus(app)).toMatchObject({ installed: false, checksumOk: true });
+  });
+
+  it('uninstall leaves no backup files behind', () => {
+    const app = fakeApp();
+    patcher.install(app, 'A();', '1.0.0');
+    const dir = path.dirname(patcher.workbenchPath(app));
+    expect(fs.readdirSync(dir).some((f) => f.endsWith('.wallpaper-studio.bak'))).toBe(true);
+    patcher.uninstall(app);
+    expect(fs.readdirSync(dir).filter((f) => f.includes('wallpaper-studio'))).toEqual([]);
+    expect(fs.readdirSync(app).filter((f) => f.includes('wallpaper-studio'))).toEqual([]);
   });
 
   it('is idempotent and upgrades in place', () => {
@@ -231,5 +241,20 @@ describe('pixel themes', () => {
     }
     expect(calls).toBeGreaterThan(1000);
     expect(new Set(THEMES.map((t) => t.id)).size).toBe(THEMES.length);
+  });
+});
+
+describe('uninstall detection (extensions.json)', () => {
+  const ID = 'derekhoang.live-wallpaper-studio';
+  const entry = (id: string) => ({ identifier: { id }, version: '1.0.0', relativeLocation: id + '-1.0.0' });
+  it('listed / not listed', () => {
+    expect(manifestLists(JSON.stringify([entry('a.b'), entry('DerekHoang.Live-Wallpaper-Studio')]), ID)).toBe(true);
+    expect(manifestLists(JSON.stringify([entry('a.b')]), ID)).toBe(false);
+    expect(manifestLists('[]', ID)).toBe(false);
+  });
+  it('unreadable or unexpected content → unknown, never "uninstalled"', () => {
+    expect(manifestLists('', ID)).toBeNull();
+    expect(manifestLists('[{"identifier":', ID)).toBeNull();
+    expect(manifestLists('{"a":1}', ID)).toBeNull();
   });
 });

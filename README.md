@@ -173,7 +173,7 @@ The terminal's GPU renderer paints an opaque background. The extension offers on
 <details>
 <summary><b>How do I remove everything?</b></summary>
 
-Run `Wallpaper: Remove Runtime and Restore the IDE`, or just uninstall the extension: the IDE is restored automatically. Your image folder is left untouched.
+Run `Wallpaper: Remove Runtime and Restore the IDE`, or just uninstall the extension: the wallpaper turns off within a few seconds, and the IDE's files are restored (backups included) the next time you quit and reopen the IDE. Your image folder is left untouched.
 </details>
 
 ## Development

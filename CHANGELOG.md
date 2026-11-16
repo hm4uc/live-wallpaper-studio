@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.4
+
+- Uninstalling the extension turns the wallpaper (and the translucent *See-through* frame) off within a few seconds, without waiting for the IDE to restart.
+- Restoring the IDE also removes the backup files (`*.wallpaper-studio.bak`).
+- Picker in the sidebar: a single "Live Wallpaper Studio" title, the search box on its own row, no more wrapped header.
+
 ## 1.1.3
 
 - The wallpaper picker now has its own icon in the Activity Bar (left sidebar) instead of a tab in the bottom panel, and opens automatically the first time after install. You can still drag it to the panel if you prefer.

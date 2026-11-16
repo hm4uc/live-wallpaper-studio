@@ -91,6 +91,9 @@ export interface WallpaperState {
   preview: { id: string; until: number } | null;
   /** When the extension last rewrote the IDE bundle + checksum (ms). */
   patchedAt?: number;
+  /** The IDE's extensions.json that lists this extension. The runtime turns itself off once
+   *  the extension disappears from it (uninstalled, IDE not restarted yet). */
+  manifest?: string;
 }
 
 export const DEFAULT_DISPLAY: DisplaySettings = {
@@ -151,6 +154,7 @@ export function normalizeState(input: unknown): WallpaperState {
     workspaces: s.workspaces && typeof s.workspaces === 'object' ? s.workspaces : {},
     preview: s.preview && typeof s.preview.id === 'string' ? s.preview : null,
     ...(typeof s.patchedAt === 'number' ? { patchedAt: s.patchedAt } : {}),
+    ...(typeof s.manifest === 'string' ? { manifest: s.manifest } : {}),
   };
 }
 

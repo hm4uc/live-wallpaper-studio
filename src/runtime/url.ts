@@ -15,6 +15,18 @@ export function toVscodeFileUrl(fsPath: string): string {
   return FILE_URL_PREFIX + prefix + p.split('/').map((s, i) => (i === 0 ? s : encodeURIComponent(s))).join('/');
 }
 
+/** Does this extensions.json list the extension? null = can't tell (unreadable / unexpected shape). */
+export function manifestLists(text: string, extId: string): boolean | null {
+  try {
+    const list = JSON.parse(text);
+    if (!Array.isArray(list)) return null;
+    const id = extId.toLowerCase();
+    return list.some((e) => typeof e?.identifier?.id === 'string' && e.identifier.id.toLowerCase() === id);
+  } catch {
+    return null;
+  }
+}
+
 /** Must match Controller.workspaceKey() in the extension: "<scheme>:<path>" lowercased. */
 export function workspaceKeyFromConfig(conf: any): string | null {
   const ws = conf?.workspace;

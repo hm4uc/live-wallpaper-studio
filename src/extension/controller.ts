@@ -10,6 +10,7 @@ import * as patcher from '../core/patcher';
 import { downloadToLibrary, findFfmpeg, gifToMp4 } from '../core/media';
 import { randomOther, resolveActive, stepFrom, type Resolution } from '../shared/rotation';
 import { t } from '../shared/i18n';
+import { manifestLists } from '../runtime/url';
 import type { DisplaySettings, RotateSettings, ScheduleSettings, ThemeSettings, WallpaperItem, WallpaperState } from '../shared/types';
 
 export type RuntimeStatus = 'active' | 'needsReload' | 'notInstalled' | 'outdated' | 'error';
@@ -55,6 +56,7 @@ export class Controller implements vscode.Disposable {
     this.rescan();
     this.watchLibrary();
     this.checkRuntime();
+    this.recordManifest();
     this.updateStatusBar();
     // Status bar countdown + pick up changes written by other windows.
     this.stateWatchTimer = setInterval(() => {
@@ -366,6 +368,23 @@ export class Controller implements vscode.Disposable {
   }
 
   // ------------------------------------------------------------------ runtime patch
+  /** Tell the runtime which extensions.json to watch. Only recorded when it lists us right now
+   *  (not for dev hosts or installs that live only in a non-default profile), so the runtime
+   *  never turns off by mistake. */
+  private recordManifest() {
+    const file = path.join(path.dirname(this.ctx.extensionPath), 'extensions.json');
+    let listed: boolean | null = null;
+    try {
+      listed = manifestLists(fs.readFileSync(file, 'utf8'), this.ctx.extension.id);
+    } catch {
+      /* no manifest */
+    }
+    this.store.update((s) => {
+      if (listed) s.manifest = file;
+      else delete s.manifest;
+    });
+  }
+
   appRoot(): string {
     return vscode.env.appRoot;
   }
