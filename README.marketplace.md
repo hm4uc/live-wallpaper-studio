@@ -87,6 +87,10 @@ VS Code doesn't let extensions draw on the main window. Live Wallpaper Studio ad
 No password dialog (for example no polkit agent on a minimal Linux desktop)? *Copy fix command* gives the same command to paste into a terminal (`sudo env ELECTRON_RUN_AS_NODE=1 …`, or PowerShell as Administrator on Windows). IDE and extension updates need the same step again, once per update.
 | Linux Snap / Flatpak | Read-only file system | Not supported. Use the .deb / .rpm / .tar.gz build |
 
+## Chat apps (Claude desktop, Antigravity 2.0)
+
+An MCP server lets agent apps control your wallpapers by chat: set the desktop wallpaper, switch / rotate / turn off the IDE wallpaper, add images. Download it from [GitHub Releases](https://github.com/hm4uc/live-wallpaper-studio/releases) (`.mcpb` for Claude desktop, `live-wallpaper-studio-mcp.js` for Antigravity 2.0 and other MCP apps). Setup: see the [README](https://github.com/hm4uc/live-wallpaper-studio#chat-apps-mcp-claude-desktop-antigravity-20).
+
 ## Known limitations
 
 - Panels the IDE draws in their own webview (for example Antigravity's Agent panel) keep their own background in *See-through* mode.

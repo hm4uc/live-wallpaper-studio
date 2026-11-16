@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- **MCP server for chat / agent apps** (Claude desktop, Antigravity 2.0, Claude Code, Cursor…): set the OS desktop wallpaper (macOS, Windows, Linux GNOME / KDE Plasma / Cinnamon / MATE), switch, rotate or turn off the wallpaper in every IDE that has the extension, list and add wallpapers, all by chat. Ships on GitHub Releases as a `.mcpb` (one-click install in Claude desktop) and a standalone `live-wallpaper-studio-mcp.js`.
+
 ## 1.1.5
 
 - IDE installed for all users (Linux .deb / .rpm under `/usr/share`, Windows Program Files, macOS app owned by another account): a new **Use administrator password** button installs, updates or removes the runtime through the system's own prompt (pkexec on Linux, the administrator dialog on macOS, UAC on Windows). No terminal needed.

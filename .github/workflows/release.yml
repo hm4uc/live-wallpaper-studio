@@ -41,10 +41,17 @@ jobs:
           VSIX=$(ls *.vsix)
           echo "vsix=$VSIX" >> "$GITHUB_OUTPUT"
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Pack MCP server (Claude desktop .mcpb + standalone script)
+        run: |
+          node scripts/mcpb.mjs
+          cp dist/mcp.js live-wallpaper-studio-mcp.js
       - uses: actions/upload-artifact@v4
         with:
           name: vsix
-          path: '*.vsix'
+          path: |
+            *.vsix
+            *.mcpb
+            live-wallpaper-studio-mcp.js
 
   open-vsx:
     needs: package
@@ -96,5 +103,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           NOTES="Open VSX (Antigravity IDE): https://open-vsx.org/extension/derekhoang/live-wallpaper-studio
-          VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=derekhoang.live-wallpaper-studio"
-          gh release create "$GITHUB_REF_NAME" "${{ needs.package.outputs.vsix }}" --title "$GITHUB_REF_NAME" --notes "$NOTES" --verify-tag
+          VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=derekhoang.live-wallpaper-studio
+          Claude desktop: install the .mcpb file. Antigravity 2.0 and other MCP apps: live-wallpaper-studio-mcp.js (see README)."
+          gh release create "$GITHUB_REF_NAME" "${{ needs.package.outputs.vsix }}" *.mcpb live-wallpaper-studio-mcp.js --title "$GITHUB_REF_NAME" --notes "$NOTES" --verify-tag
