@@ -4,3 +4,15 @@ dist/
 .env
 build/
 *.mcpb
+
+# AI agent instruction files (keep local only; README.md and CHANGELOG.md are tracked)
+AGENTS.md
+AGENT.md
+CLAUDE.md
+GEMINI.md
+.github/copilot-instructions.md
+.cursorrules
+.cursor/
+.windsurfrules
+.claude/
+.codegraph/
