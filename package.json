@@ -33,7 +33,7 @@
   ],
   "contributes": {
     "viewsContainers": {
-      "panel": [
+      "activitybar": [
         {
           "id": "wallpaperStudio",
           "title": "Wallpaper",
@@ -46,7 +46,8 @@
         {
           "type": "webview",
           "id": "wallpaperStudio.picker",
-          "name": "%view.picker%"
+          "name": "%view.picker%",
+          "icon": "media/panel-icon.svg"
         }
       ]
     },

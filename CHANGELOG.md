@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+
+- The wallpaper picker now has its own icon in the Activity Bar (left sidebar) instead of a tab in the bottom panel, and opens automatically the first time after install. You can still drag it to the panel if you prefer.
+
 ## 1.1.2
 
 - *See-through* mode looks even on light themes and in VS Code: nested surfaces (tab bar, breadcrumbs, sidebar headers, lists, VS Code modern-UI tabs) no longer stack into lighter or darker patches.

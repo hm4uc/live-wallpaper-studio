@@ -56,7 +56,7 @@ Most background extensions for VS Code make you paste image paths into `settings
 
 ## Features
 
-- 🖼️ **Visual picker.** A thumbnail grid in the panel (`Ctrl+Alt+W`) with live preview, search, filters and favorites.
+- 🖼️ **Visual picker.** A thumbnail grid in the sidebar — click the wallpaper icon in the Activity Bar or press `Ctrl+Alt+W` with live preview, search, filters and favorites.
 - ⚡ **Instant switching.** Reload once at setup. After that, every change applies immediately.
 - 🎞️ **Every common format.** PNG, JPG, WebP, BMP, SVG, AVIF, **GIF**, **MP4**, **WebM**, MOV.
 - 👾 **6 pixel themes drawn in code.** Far lighter than a GIF, with *Density* and *Speed* sliders.
