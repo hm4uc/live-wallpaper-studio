@@ -14,6 +14,8 @@ const builds = [
   { ...common, entryPoints: ['src/cli.ts'], outfile: 'dist/cli.js', platform: 'node', format: 'cjs', target: 'node18', minify: prod },
   // The runtime is embedded in the IDE bundle: keep it small and self-contained.
   { ...common, entryPoints: ['src/runtime/index.ts'], outfile: 'dist/runtime.js', platform: 'browser', format: 'iife', target: 'chrome120', minify: true, define: { __EXT_ID__: JSON.stringify(extId), __RUNTIME_VERSION__: JSON.stringify(pkg.version) } },
+  // MCP server for chat / agent apps: one self-contained file (SDK bundled), shipped as .mcpb + mcp.js on GitHub Releases.
+  { ...common, entryPoints: ['src/mcp/server.ts'], outfile: 'dist/mcp.js', platform: 'node', format: 'cjs', target: 'node18', minify: prod, banner: { js: '#!/usr/bin/env node' }, define: { __EXT_ID__: JSON.stringify(extId), __MCP_VERSION__: JSON.stringify(pkg.version) } },
   { ...common, entryPoints: ['src/webview/main.ts'], outfile: 'dist/webview.js', platform: 'browser', format: 'iife', target: 'chrome120', minify: prod },
 ];
 

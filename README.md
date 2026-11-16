@@ -31,6 +31,7 @@
 - [Features](#features)
 - [Pixel themes](#pixel-themes)
 - [Installation](#installation)
+- [Chat apps (MCP): Claude desktop, Antigravity 2.0](#chat-apps-mcp-claude-desktop-antigravity-20)
 - [Quick start](#quick-start)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Settings](#settings)
@@ -94,6 +95,36 @@ Drawn on a quarter-resolution canvas at 15 fps, so they cost a fraction of a GIF
 | **VS Code** | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=derekhoang.live-wallpaper-studio), or `code --install-extension derekhoang.live-wallpaper-studio` |
 | **Antigravity IDE** | Search **Live Wallpaper Studio** in the Extensions view ([Open VSX](https://open-vsx.org/extension/derekhoang/live-wallpaper-studio)) |
 | **Cursor, VSCodium, Windsurf, other forks** | [Open VSX](https://open-vsx.org/extension/derekhoang/live-wallpaper-studio), or install the `.vsix` from [Releases](https://github.com/hm4uc/live-wallpaper-studio/releases) |
+
+## Chat apps (MCP): Claude desktop, Antigravity 2.0
+
+Agent apps that chat instead of showing files can't display a wallpaper inside their window, but they can **control** one. The Live Wallpaper Studio MCP server lets you ask, in plain language:
+
+- *"Set my desktop wallpaper to Đà Lạt sunset"*: the OS desktop wallpaper (still images), on macOS, Windows and Linux (GNOME, KDE Plasma, Cinnamon, MATE).
+- *"Show Starry Night in my IDE"*, *"next wallpaper"*, *"change it every 15 minutes, shuffled"*, *"turn the wallpaper off"*: every IDE that has the extension (VS Code, Antigravity IDE, Cursor…), live, no reload.
+- *"Add this image to my wallpapers: https://…"*
+
+Everything runs on your computer; nothing is sent anywhere.
+
+| App | Install |
+|---|---|
+| **Claude desktop** (macOS, Windows) | Download `live-wallpaper-studio-<version>.mcpb` from [Releases](https://github.com/hm4uc/live-wallpaper-studio/releases), then *Settings → Extensions → Advanced settings → Install Extension…* (or double-click the file). |
+| **Antigravity 2.0** | Download `live-wallpaper-studio-mcp.js` from [Releases](https://github.com/hm4uc/live-wallpaper-studio/releases) and add it to `~/.gemini/config/mcp_config.json` (Windows: `%USERPROFILE%\.gemini\config\mcp_config.json`), then *Settings → Customizations → Installed MCP Servers → Refresh*. Needs [Node.js](https://nodejs.org) 18+. |
+| **Claude Code, Cursor, other MCP clients** | Same script: `claude mcp add live-wallpaper-studio -- node /path/to/live-wallpaper-studio-mcp.js`, or the JSON below in the client's MCP config. |
+| **ChatGPT desktop** | Not supported: ChatGPT only connects to remote MCP servers over the internet, and this server has to run on your own computer. |
+
+```json
+{
+  "mcpServers": {
+    "live-wallpaper-studio": {
+      "command": "node",
+      "args": ["/absolute/path/to/live-wallpaper-studio-mcp.js"]
+    }
+  }
+}
+```
+
+Tools: `wallpaper_status`, `list_wallpapers`, `set_ide_wallpaper`, `change_ide_wallpaper`, `set_ide_wallpaper_enabled`, `set_auto_rotate`, `set_desktop_wallpaper`, `add_wallpaper`. GIFs, videos and pixel themes can be IDE wallpapers only; the desktop takes still images.
 
 ## Quick start
 
