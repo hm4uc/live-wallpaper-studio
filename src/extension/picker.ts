@@ -7,6 +7,7 @@ import { getLang, t } from '../shared/i18n';
 /** Messages webview → extension. */
 type InMsg =
   | { type: 'ready'; h264?: boolean }
+  | { type: 'codecs'; report: Record<string, unknown>; screen: { w: number; h: number } }
   | { type: 'apply'; id: string | null }
   | { type: 'preview'; id: string | null }
   | { type: 'display'; patch: Record<string, unknown> }
@@ -102,6 +103,20 @@ export class PickerProvider implements vscode.WebviewViewProvider, vscode.Dispos
         if (typeof m.h264 === 'boolean') c.ctx.globalState.update('h264', m.h264);
         this.push();
         break;
+      case 'codecs': {
+        // Hardware decode support of the IDE's Chromium + the screen's physical size: used to pick
+        // the codec and output size when optimizing GIFs / videos.
+        const report: Record<string, { supported: boolean; smooth: boolean; powerEfficient: boolean }> = {};
+        for (const k of ['h264', 'hevc', 'vp9', 'av1']) {
+          const v = m.report?.[k] as Record<string, unknown> | undefined;
+          if (v && typeof v === 'object') report[k] = { supported: v.supported === true, smooth: v.smooth === true, powerEfficient: v.powerEfficient === true };
+        }
+        c.ctx.globalState.update('codecs', report);
+        const w = Number(m.screen?.w);
+        const h = Number(m.screen?.h);
+        if (w >= 320 && h >= 200 && w <= 16384 && h <= 16384) c.ctx.globalState.update('screen', { w: Math.round(w), h: Math.round(h) });
+        break;
+      }
       case 'apply':
         c.select(m.id);
         break;

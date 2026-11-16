@@ -11,11 +11,15 @@ const VI: Record<string, string> = {
   'Downloading wallpaper…': 'Đang tải ảnh nền…',
   'ffmpeg not found. Install it (e.g. winget install ffmpeg / brew install ffmpeg / apt install ffmpeg) or set "wallpaperStudio.ffmpegPath".':
     'Không tìm thấy ffmpeg. Cài ffmpeg (vd: winget install ffmpeg / brew install ffmpeg / apt install ffmpeg) hoặc đặt "wallpaperStudio.ffmpegPath".',
-  'No heavy GIFs to optimize. (GIFs smaller than ~900×500 use less CPU as GIF than as video.)':
-    'Không có GIF nặng nào cần tối ưu. (GIF nhỏ hơn ~900×500 giữ nguyên dạng GIF sẽ nhẹ hơn video.)',
-  'Optimizing GIF → MP4': 'Đang tối ưu GIF → MP4',
+  'Nothing to optimize. (GIFs smaller than ~900×500 use less CPU as GIF than as video.)':
+    'Không có gì cần tối ưu. (GIF nhỏ hơn ~900×500 giữ nguyên dạng GIF sẽ nhẹ hơn video.)',
+  'Optimizing wallpapers ({0})': 'Đang tối ưu ảnh nền ({0})',
+  'could not read the video stream': 'không đọc được luồng video',
   'Optimizing {0} failed: {1}': 'Tối ưu {0} thất bại: {1}',
-  'Optimized {0} GIF(s), saved {1} MB. The originals are in the .originals folder.': 'Đã tối ưu {0} GIF, tiết kiệm {1} MB. File gốc nằm trong thư mục .originals.',
+  'Optimized {0} file(s) ({1}, ≤ {2}×{3}, ≤ 30 fps), saved {4} MB. The originals are in the .originals folder.':
+    'Đã tối ưu {0} file ({1}, ≤ {2}×{3}, ≤ 30 fps), tiết kiệm {4} MB. File gốc nằm trong thư mục .originals.',
+  'Already optimal: {0} file(s) fit the screen, run at ≤ 30 fps and use an efficient codec.':
+    'Đã tối ưu sẵn: {0} file vừa kích thước màn hình, ≤ 30 fps và dùng codec hiệu quả.',
   'Only http(s) links are supported': 'Chỉ hỗ trợ link http(s)',
   'Download failed: HTTP {0}': 'Tải thất bại: HTTP {0}',
   'File too large (> 300 MB)': 'File quá lớn (> 300MB)',
@@ -188,7 +192,8 @@ const VI: Record<string, string> = {
   'Pause when the IDE is not focused (saves battery)': 'Tạm dừng khi IDE không focus (tiết kiệm pin)',
   'Folder: ': 'Thư mục: ',
   'Show {0} hidden theme(s)': 'Hiện lại {0} theme đã ẩn',
-  'Optimize heavy GIFs': 'Tối ưu GIF nặng',
+  'Optimize heavy GIFs & videos': 'Tối ưu GIF & video nặng',
+  '⚡ Optimize video (screen size, ≤ 30 fps, hardware-decoded codec)': '⚡ Tối ưu video (vừa màn hình, ≤ 30 fps, codec giải mã bằng phần cứng)',
   'Remove runtime': 'Gỡ runtime',
   '✅ Runtime installed. Reload the window once to turn the wallpaper on.': '✅ Đã cài runtime. Reload cửa sổ 1 lần để bật ảnh nền.',
   'Runtime error': 'Lỗi runtime',

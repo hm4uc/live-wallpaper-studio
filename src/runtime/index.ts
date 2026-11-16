@@ -2,10 +2,13 @@
  * Wallpaper Studio runtime — appended ONCE to workbench.desktop.main.js.
  *
  * It contains no wallpaper paths. It finds the extension's state.json from the window
- * configuration, polls it (cheap: one small local read), and renders whatever it says.
- * Changing wallpapers therefore never needs a reload.
+ * configuration, polls its tiny revision file (one few-byte local read), fetches the state only
+ * when it changed, and renders whatever it says. Changing wallpapers therefore never needs a reload.
+ *
+ * It runs on the workbench's UI thread, so it must stay idle when nothing changes: no per-second
+ * DOM queries, observers instead of polling the DOM, and timers only while something animates.
  */
-import { EXT_ID, MSG_TAG, STATE_FILE, normalizeState, type DisplaySettings, type FastMessage, type ThemeSettings, type WallpaperItem, type WallpaperState } from '../shared/types';
+import { EXT_ID, MSG_TAG, REV_FILE, STATE_FILE, normalizeState, type DisplaySettings, type FastMessage, type ThemeSettings, type WallpaperItem, type WallpaperState } from '../shared/types';
 import { resolveActive } from '../shared/rotation';
 import { getTheme, type ThemeInstance } from '../shared/themes';
 import { FILE_URL_PREFIX, manifestLists, toVscodeFileUrl, workspaceKeyFromConfig } from './url';
@@ -21,6 +24,10 @@ const POLL_ACTIVE = 400;
 const POLL_IDLE = 1200;
 const POLL_BACKGROUND = 4000;
 const MANIFEST_EVERY = 10000;
+/** Full state.json fetch at least this often, for writers that don't write the rev file. */
+const FULL_EVERY = 15000;
+/** Fallback repaint rate of a blurred video where requestVideoFrameCallback is missing. */
+const MAX_VIDEO_FPS = 30;
 
 function readConfig(): any {
   try {
@@ -38,8 +45,26 @@ interface Slot {
   media: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | HTMLDivElement;
   freeze?: HTMLCanvasElement;
   theme?: ThemeInstance;
+  /** 2D context of the theme canvas (opaque: themes paint every pixel). */
+  ctx?: CanvasRenderingContext2D;
+  /** Low-resolution blurred copy shown instead of `media` while blur is on. */
+  blur?: BlurView;
+  /** The blur canvas couldn't be created: use CSS blur for this slot. */
+  blurFailed?: boolean;
   paused?: boolean;
   drawn?: boolean;
+}
+
+interface BlurView {
+  canvas: HTMLCanvasElement;
+  /** CSS blur radius it was built for. */
+  px: number;
+  /** Repaint from the source now (themes call this after each frame). */
+  draw(): void;
+  /** Follow the source's frames (video / GIF); no-op for still sources. */
+  start(): void;
+  stop(): void;
+  dispose(): void;
 }
 
 function boot() {
@@ -48,6 +73,7 @@ function boot() {
   if (!userDataDir) return;
   const sep = userDataDir.includes('\\') ? '\\' : '/';
   const stateUrl = toVscodeFileUrl([userDataDir, 'User', 'globalStorage', EXT_ID, STATE_FILE].join(sep));
+  const revUrl = toVscodeFileUrl([userDataDir, 'User', 'globalStorage', EXT_ID, REV_FILE].join(sep));
   const workspaceKey = workspaceKeyFromConfig(conf);
 
   let state: WallpaperState | null = null;
@@ -77,8 +103,11 @@ function boot() {
 #wallpaper-studio .ws-slot.on{opacity:1;}
 #wallpaper-studio .ws-media{position:absolute;inset:0;width:100%;height:100%;display:block;}
 #wallpaper-studio canvas.ws-theme{image-rendering:pixelated;image-rendering:crisp-edges;}
+#wallpaper-studio .ws-src{visibility:hidden;}
+#wallpaper-studio video.ws-src{visibility:visible;right:auto;bottom:auto;width:1px;height:1px;}
 body.ws-behind .monaco-workbench{background-color:transparent !important;}
 `;
+  root.style.contain = 'strict';
 
   const workbench = () => document.querySelector('.monaco-workbench') as HTMLElement | null;
   const isDark = () => {
@@ -157,7 +186,62 @@ body.ws-behind .monaco-workbench{background-color:transparent !important;}
   ];
   function tintParts(alpha: number | null) {
     for (const [sel, mul] of PART_TINTS) tintSel(sel, alpha === null ? null : alpha * mul);
+    watchParts(alpha !== null);
   }
+  // VS Code rewrites a part's inline background on theme switches, debug sessions, the
+  // no-folder status bar… Watch just those few elements' `style` attribute (not the whole
+  // workbench subtree, whose styles change constantly while scrolling/typing) and re-tint.
+  // Our own write triggers one callback that finds nothing to do, so this never loops.
+  let partTimer: ReturnType<typeof setTimeout> | null = null;
+  const partObserver = new MutationObserver(() => {
+    if (partTimer) return;
+    partTimer = setTimeout(() => {
+      partTimer = null;
+      if (!state) return;
+      const { display } = effective();
+      if (display.mode === 'behind') for (const [sel, mul] of PART_TINTS) tintSel(sel, display.frameOpacity * mul);
+    }, 30);
+  });
+  function watchParts(on: boolean) {
+    partObserver.disconnect();
+    const wb = workbench();
+    if (!on || !wb) return;
+    for (const [sel] of PART_TINTS) for (const el of wb.querySelectorAll(sel)) partObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  // Colour theme changes: VS Code rewrites <style class="contributedColorTheme">. Count changes
+  // with an observer instead of reading that (large) stylesheet's text every second.
+  let themeGen = 0;
+  let themeStyleEl: Element | null = null;
+  const onThemeChanged = () => {
+    themeGen++;
+    frameKey = '';
+    if (state) applyRootStyle(slot?.item ?? null);
+  };
+  let themeTimer: ReturnType<typeof setTimeout> | null = null;
+  const themeObserver = new MutationObserver(() => {
+    if (themeTimer) return;
+    themeTimer = setTimeout(() => {
+      themeTimer = null;
+      onThemeChanged();
+    }, 50);
+  });
+  function watchThemeStyle() {
+    const el = document.querySelector('style.contributedColorTheme');
+    if (el === themeStyleEl) return;
+    themeStyleEl = el;
+    themeObserver.disconnect();
+    if (el) themeObserver.observe(el, { childList: true, characterData: true, subtree: true });
+  }
+  // The theme <style> may be created after boot or replaced: re-resolve it when <head>'s children
+  // change, and react only when it is a different element.
+  const headObserver = new MutationObserver(() => {
+    const before = themeStyleEl;
+    watchThemeStyle();
+    if (themeStyleEl !== before) onThemeChanged();
+  });
+  headObserver.observe(document.head, { childList: true });
+  watchThemeStyle();
   function tintSel(sel: string, alpha: number | null) {
     const wb = workbench();
     if (!wb) return;
@@ -189,7 +273,7 @@ body.ws-behind .monaco-workbench{background-color:transparent !important;}
     document.body.classList.toggle('ws-behind', behind);
     tintParts(behind ? display.frameOpacity : null);
     const wb = workbench();
-    const themeSig = (wb?.className ?? '') + '|' + (document.querySelector('style.contributedColorTheme')?.textContent?.length ?? 0);
+    const themeSig = (wb?.className ?? '') + '|' + themeGen;
     const key = behind ? `${display.frameOpacity}|${themeSig}` : 'off';
     if (key === frameKey) return;
     frameKey = key;
@@ -275,17 +359,213 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
       m.style.backgroundRepeat = fit === 'tile' ? 'repeat' : 'no-repeat';
       m.style.backgroundSize = fit === 'tile' || fit === 'center' ? 'auto' : fit === 'fill' ? '100% 100%' : fit;
     }
-    if (s.freeze) {
-      s.freeze.style.objectFit = m.style.objectFit || 'cover';
-      s.freeze.style.objectPosition = pos;
+    syncBlur(s, display);
+    for (const extra of [s.freeze, s.blur?.canvas]) {
+      if (!extra) continue;
+      extra.style.objectFit = m.style.objectFit || 'cover';
+      extra.style.objectPosition = pos;
     }
-    const blur = display.blur > 0 ? `blur(${display.blur}px)` : '';
-    s.wrap.style.filter = blur;
-    s.wrap.style.transform = display.blur > 0 ? 'scale(1.06)' : '';
+    // CSS blur only where the canvas path can't reproduce the layout (tile / center) or decode
+    // the frames (GIF without ImageDecoder).
+    s.wrap.style.filter = display.blur > 0 && !s.blur ? `blur(${display.blur}px)` : '';
+    s.wrap.style.transform = display.blur > 0 ? 'scale(1.06)' : ''; // hides the soft edges
     const behind = display.mode === 'behind';
-    s.wrap.style.setProperty('--x', '0');
-    (s.wrap.firstElementChild as HTMLElement | null)?.style.setProperty('opacity', behind ? 'var(--ws-media-opacity,1)' : '1');
-    if (s.freeze) s.freeze.style.opacity = behind ? 'var(--ws-media-opacity,1)' : '1';
+    const op = behind ? 'var(--ws-media-opacity,1)' : '1';
+    m.style.setProperty('opacity', op);
+    if (s.freeze) s.freeze.style.opacity = op;
+    if (s.blur) s.blur.canvas.style.opacity = op;
+  }
+
+  // ------------------------------------------------------------------ blur
+  // CSS `filter: blur()` on a full-screen layer re-filters every screen pixel on every new
+  // video / GIF / theme frame. A blurred picture has no fine detail, so paint it into a canvas
+  // 1/k the size with the blur applied there and let the GPU upscale it: ~k² fewer pixels to
+  // filter per frame. Still images are blurred once, then cost nothing.
+  function blurSourceSize(s: Slot): [number, number] | null {
+    const m = s.media;
+    if (m instanceof HTMLImageElement) return m.naturalWidth ? [m.naturalWidth, m.naturalHeight] : null;
+    if (m instanceof HTMLVideoElement) return m.videoWidth ? [m.videoWidth, m.videoHeight] : null;
+    if (m instanceof HTMLCanvasElement) return m.width ? [m.width, m.height] : null;
+    return null;
+  }
+  const hasImageDecoder = typeof (window as any).ImageDecoder === 'function';
+  function canvasBlurFits(s: Slot, display: DisplaySettings): boolean {
+    if (display.blur <= 0 || s.blurFailed || s.media instanceof HTMLDivElement) return false;
+    // The canvas keeps the source's aspect ratio, so object-fit lays it out exactly like the
+    // source for cover / contain / fill. Tile / center depend on the source's pixel size.
+    if (display.fit !== 'cover' && display.fit !== 'contain' && display.fit !== 'fill') return false;
+    if (s.item.kind === 'gif' && !hasImageDecoder) return false;
+    return !!blurSourceSize(s);
+  }
+
+  function createBlur(s: Slot, px: number): BlurView | null {
+    const [nw, nh] = blurSourceSize(s)!;
+    const k = Math.min(8, Math.max(2, px / 2));
+    const scale = Math.max(innerWidth / nw, innerHeight / nh) / k; // source px → canvas px
+    const c = document.createElement('canvas');
+    c.className = 'ws-media ws-blur';
+    c.width = Math.max(8, Math.round(nw * scale));
+    c.height = Math.max(8, Math.round(nh * scale));
+    const ctx = c.getContext('2d');
+    if (!ctx) return null;
+    const filter = `blur(${(px / k).toFixed(2)}px)`;
+    const paint = (src: CanvasImageSource) => {
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.filter = filter;
+      ctx.drawImage(src, 0, 0, c.width, c.height);
+      ctx.filter = 'none';
+    };
+    const m = s.media;
+    const still = (src: CanvasImageSource): BlurView => ({ canvas: c, px, draw: () => paint(src), start() {}, stop() {}, dispose: () => c.remove() });
+
+    if (m instanceof HTMLVideoElement) {
+      // requestVideoFrameCallback fires once per decoded frame (and not at all while paused).
+      // The <video> stays in the layout at 1×1 px so Chromium keeps presenting its frames.
+      const rvfc = typeof m.requestVideoFrameCallback === 'function';
+      let running = false;
+      let handle = 0;
+      let last = -1;
+      const frame = () => {
+        if (!running) return;
+        if (m.readyState >= 2 && m.currentTime !== last) {
+          last = m.currentTime;
+          paint(m);
+        }
+        handle = rvfc ? m.requestVideoFrameCallback(frame) : window.setTimeout(frame, 1000 / MAX_VIDEO_FPS);
+      };
+      const stop = () => {
+        running = false;
+        if (rvfc) m.cancelVideoFrameCallback(handle);
+        else clearTimeout(handle);
+      };
+      paint(m);
+      return {
+        canvas: c, px, draw: () => paint(m), stop,
+        start() {
+          if (running) return;
+          running = true;
+          frame();
+        },
+        dispose() {
+          stop();
+          c.remove();
+        },
+      };
+    }
+
+    if (m instanceof HTMLImageElement && s.item.kind === 'gif') {
+      // The hidden <img> no longer animates, so decode the frames with WebCodecs' ImageDecoder
+      // (off the UI thread) at the GIF's own frame timing.
+      const url = m.currentSrc || m.src;
+      let dec: any = null;
+      let count = 1;
+      let idx = 0;
+      let gen = 0;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      let alive = true;
+      const ready = fetch(url)
+        .then((r) => r.arrayBuffer())
+        .then(async (data) => {
+          if (!alive) return;
+          dec = new (window as any).ImageDecoder({ data, type: 'image/gif' });
+          // `tracks` stays empty until tracks.ready, even after `completed`.
+          await dec.tracks.ready;
+          await dec.completed;
+          count = Math.max(0, dec.tracks.selectedTrack?.frameCount ?? 0);
+        })
+        .catch(() => undefined);
+      const step = async (g: number, retry = true) => {
+        timer = null;
+        if (g !== gen || !dec) return;
+        try {
+          const { image } = await dec.decode({ frameIndex: idx });
+          if (g !== gen) return image.close();
+          paint(image);
+          let ms = (image.duration ?? 100_000) / 1000;
+          if (ms <= 10) ms = 100; // same clamp as browsers apply to GIF frame delays
+          image.close();
+          idx = count > 0 ? (idx + 1) % count : idx + 1;
+          timer = setTimeout(() => step(g), ms);
+        } catch {
+          // Past the last frame (frame count unknown): loop from the start once; otherwise keep
+          // the last painted frame.
+          if (retry && idx > 0 && g === gen) {
+            idx = 0;
+            return step(g, false);
+          }
+        }
+      };
+      const stop = () => {
+        gen++;
+        if (timer) clearTimeout(timer);
+        timer = null;
+      };
+      paint(m); // first frame right away
+      return {
+        canvas: c, px, draw: () => paint(m), stop,
+        start() {
+          if (timer) return;
+          const g = ++gen;
+          void ready.then(() => step(g));
+        },
+        dispose() {
+          alive = false;
+          stop();
+          try {
+            dec?.close();
+          } catch {
+            /* already closed */
+          }
+          c.remove();
+        },
+      };
+    }
+
+    // Still image, or a theme canvas (repainted by the theme loop through draw()).
+    const view = still(m as CanvasImageSource);
+    view.draw();
+    return view;
+  }
+
+  function disposeBlur(s: Slot) {
+    if (!s.blur) return;
+    s.blur.dispose();
+    s.blur = undefined;
+    (s.media as HTMLElement).classList.remove('ws-src');
+  }
+
+  let blurRebuild: ReturnType<typeof setTimeout> | null = null;
+  /** Create / resize / drop the blur canvas to match the settings. Slider drags are debounced. */
+  function syncBlur(s: Slot, display: DisplaySettings, force = false) {
+    const want = canvasBlurFits(s, display) ? display.blur : 0;
+    if (!force && (s.blur?.px ?? 0) === want) return;
+    const apply = () => {
+      blurRebuild = null;
+      if (slot !== s) return;
+      const cur = effective().display;
+      const px = canvasBlurFits(s, cur) ? cur.blur : 0;
+      disposeBlur(s);
+      if (px > 0) {
+        let view: BlurView | null = null;
+        try {
+          view = createBlur(s, px);
+        } catch (e) {
+          console.warn('[wallpaper-studio] blur', e);
+        }
+        if (view) {
+          s.blur = view;
+          s.wrap.appendChild(view.canvas);
+          (s.media as HTMLElement).classList.add('ws-src');
+          if (!paused) view.start();
+        } else {
+          s.blurFailed = true; // CSS blur from now on (also stops this from retrying)
+        }
+      }
+      styleMedia(s);
+    };
+    if (blurRebuild) clearTimeout(blurRebuild);
+    if (s.blur && want > 0) blurRebuild = setTimeout(apply, 120);
+    else apply();
   }
 
   function slotKey(item: WallpaperItem, display: DisplaySettings): string {
@@ -318,7 +598,10 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
         const h = Math.ceil(innerHeight / PIXEL);
         c.width = w;
         c.height = h;
-        return done({ wrap, key, item, media: c, theme: def.create(w, h, 7) });
+        // Opaque: every theme paints its whole sky first, so the compositor can skip alpha blending.
+        const ctx = c.getContext('2d', { alpha: false });
+        if (!ctx) return fail('no canvas context');
+        return done({ wrap, key, item, media: c, ctx, theme: def.create(w, h, 7) });
       }
       const url = item.url ?? '';
       if (!url.startsWith(FILE_URL_PREFIX)) return fail('bad url');
@@ -364,6 +647,7 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
   }
 
   function releaseSlot(s: Slot) {
+    disposeBlur(s);
     const m = s.media;
     if (m instanceof HTMLVideoElement) {
       m.pause();
@@ -423,19 +707,26 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
   }
 
   // ------------------------------------------------------------------ pause / freeze
+  // A hidden window (minimized, other virtual desktop, fully covered) always pauses: nobody can
+  // see it. An unfocused but visible window keeps playing unless the user opted in to pausing.
   let paused = false;
   function updatePause() {
-    const want = !!state && effective().display.pauseWhenUnfocused && !focused;
+    const want = !!state && (document.hidden || (effective().display.pauseWhenUnfocused && !focused));
     paused = want;
     const s = slot;
     scheduleAnimation();
     if (!s || s.paused === want) return; // tracked per slot: a new slot starts unpaused
     s.paused = want;
     const m = s.media;
+    if (s.blur) {
+      if (want) s.blur.stop();
+      else s.blur.start();
+    }
     if (m instanceof HTMLVideoElement) {
       if (want) m.pause();
       else m.play().catch(() => undefined);
-    } else if (m instanceof HTMLImageElement && s.item.kind === 'gif') {
+    } else if (m instanceof HTMLImageElement && s.item.kind === 'gif' && !s.blur) {
+      // (with blur the <img> is hidden already and the blur canvas holds the last frame)
       if (want) {
         // Snapshot the current frame, then hide the <img> so Chromium stops decoding it.
         try {
@@ -474,9 +765,11 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
       c.width = w;
       c.height = h;
       s.theme!.resize(w, h);
+      if (s.blur) syncBlur(s, effective().display, true); // new aspect ratio
     }
     const { theme } = effective();
-    s.theme!.frame(c.getContext('2d')!, dt, theme.density, theme.speed);
+    s.theme!.frame(s.ctx!, dt, theme.density, theme.speed);
+    s.blur?.draw();
   }
   function scheduleAnimation() {
     const s = slot;
@@ -504,6 +797,7 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
     }
   }
   addEventListener('resize', () => {
+    if (slot?.blur && !slot.theme) syncBlur(slot, effective().display, true); // canvas sized from the window
     if (slot?.theme && !animTimer) {
       slot.drawn = false;
       scheduleAnimation();
@@ -520,13 +814,24 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
   }
 
   let polling = false;
-  async function poll() {
+  let lastRev = '';
+  let lastFull = 0;
+  /** Cheap check first: the few-byte rev file. The full state is fetched only when the rev
+   *  changed, the rev file doesn't exist (older extension build), or every FULL_EVERY ms. */
+  async function poll(force = false) {
     if (polling) return;
     polling = true;
     try {
+      let rev = '';
+      if (!force && state && Date.now() - lastFull < FULL_EVERY) {
+        const r = await fetch(revUrl + '?t=' + Date.now(), { cache: 'no-store' }).catch(() => null);
+        rev = r?.ok ? (await r.text()).trim() : '';
+        if (rev && rev === lastRev) return;
+      }
       const res = await fetch(stateUrl + '?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
+      lastFull = Date.now();
       if (text !== lastText) {
         lastText = text;
         const next = normalizeState(JSON.parse(text));
@@ -536,6 +841,8 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
         refresh();
         armFalseAlarmGuard();
       }
+      // The rev file holds JSON.stringify(state.rev), so the state's own rev is the same string.
+      lastRev = rev || (state ? String(state.rev) : '');
     } catch (e) {
       if (state === null && lastText === '') {
         /* not configured yet */
@@ -575,7 +882,7 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
   let lastActivity = Date.now();
   const bump = () => (lastActivity = Date.now());
   function loop() {
-    poll();
+    if (!uninstalled) poll(); // uninstalled: only the manifest check matters (a reinstall turns it back on)
     checkManifest();
     const delay = !focused ? POLL_BACKGROUND : Date.now() - lastActivity < 20000 ? POLL_ACTIVE : POLL_IDLE;
     setTimeout(loop, delay);
@@ -583,7 +890,9 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
   addEventListener('keydown', bump, true);
   addEventListener('mousedown', bump, true);
 
-  // rotation tick + focus tracking (document.hasFocus() is true while a webview iframe has focus)
+  // Rotation tick + focus tracking (document.hasFocus() is true while a webview iframe has focus).
+  // Pure arithmetic each second; theme / part colour changes arrive through the observers above.
+  let ticks = 0;
   setInterval(() => {
     const f = document.hasFocus() && !document.hidden;
     if (f !== focused) {
@@ -592,10 +901,13 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
       if (f) poll();
     }
     if (state) {
+      const { display } = effective();
       const item = activeItem(Date.now());
-      const key = item ? slotKey(item, effective().display) : '';
+      const key = item ? slotKey(item, display) : '';
       if ((slot?.key ?? '') !== key) refresh();
-      else applyFrame(effective().display); // picks up theme changes
+      // Safety net for parts VS Code created after we started watching (e.g. a panel opened
+      // for the first time): re-tint + re-observe every 10 s, a handful of elements.
+      else if (display.mode === 'behind' && ++ticks % 10 === 0) tintParts(display.frameOpacity);
     }
   }, 1000);
 

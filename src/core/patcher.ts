@@ -61,23 +61,46 @@ function isWritable(p: string): boolean {
   }
 }
 
-export function getStatus(appRoot: string): PatchStatus {
-  const wb = workbenchPath(appRoot);
-  const src = fs.readFileSync(wb, 'utf8');
-  const version = readVersion(src);
-  let checksumOk: boolean | null = null;
+/** Our block (and the legacy one) is always appended at the very end of the bundle. */
+const TAIL_BYTES = 1024 * 1024;
+
+/** The last `bytes` of a file as text (the whole file when it is smaller). */
+export function readTail(file: string, bytes = TAIL_BYTES): string {
+  const fd = fs.openSync(file, 'r');
   try {
-    const product = JSON.parse(fs.readFileSync(productJsonPath(appRoot), 'utf8'));
-    const expected = product?.checksums?.[CHECKSUM_KEY];
-    if (expected) checksumOk = expected === sha256Checksum(Buffer.from(src, 'utf8'));
-  } catch {
-    /* no product.json checksums */
+    const size = fs.fstatSync(fd).size;
+    const len = Math.min(size, bytes);
+    const buf = Buffer.alloc(len);
+    fs.readSync(fd, buf, 0, len, size - len);
+    return buf.toString('utf8');
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
+ * Patch status from the bundle's tail (it is several MB). The integrity checksum needs a hash
+ * of the whole file, so it is only computed when asked for (`checksum: false` → null).
+ */
+export function getStatus(appRoot: string, opts: { checksum?: boolean } = {}): PatchStatus {
+  const wb = workbenchPath(appRoot);
+  const tail = readTail(wb);
+  const version = readVersion(tail);
+  let checksumOk: boolean | null = null;
+  if (opts.checksum !== false) {
+    try {
+      const product = JSON.parse(fs.readFileSync(productJsonPath(appRoot), 'utf8'));
+      const expected = product?.checksums?.[CHECKSUM_KEY];
+      if (expected) checksumOk = expected === sha256Checksum(fs.readFileSync(wb));
+    } catch {
+      /* no product.json checksums */
+    }
   }
   return {
     workbenchPath: wb,
     installed: version !== null,
     version,
-    legacyPresent: /\/\/ vscode-background-start/.test(src),
+    legacyPresent: /\/\/ vscode-background-start/.test(tail),
     checksumOk,
     writable: isWritable(wb),
   };

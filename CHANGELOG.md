@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Keeps playing when the IDE isn't focused.** GIFs, videos and pixel themes no longer freeze when you switch to another app; they still pause when the IDE is minimized or hidden. *Pause when the IDE is not focused* is now off by default (existing installs are switched once) and can be turned back on in the picker.
+- **Cheaper blur.** Blurred wallpapers are drawn into a small canvas and upscaled by the GPU instead of re-blurring the whole screen on every frame. Still images are blurred once; GIFs are decoded with `ImageDecoder`.
+- **Optimize videos too.** *Optimize Heavy GIFs & Videos* re-encodes videos larger than the screen, above 30 fps, or in a codec the GPU can't decode. The codec is picked from what the IDE decodes in hardware (H.264, HEVC, VP9 or AV1). Audio tracks are dropped, `.mp4` files keep their name, and originals go to `.originals`.
+- **Lighter runtime.** The workbench polls a few-byte revision file instead of the whole state, and reacts to theme and panel colour changes through observers instead of checking every second. Pixel themes paint their static scenery once and use an opaque canvas.
+- **Faster startup.** The extension reads only the end of the IDE bundle to check the runtime, hashes it only after the IDE changed, remembers the library folder, and reads the state from disk only when it changed.
 ## 1.2.0
 
 - **MCP server for chat / agent apps** (Claude desktop, Antigravity 2.0, Claude Code, Cursor…): set the OS desktop wallpaper (macOS, Windows, Linux GNOME / KDE Plasma / Cinnamon / MATE), switch, rotate or turn off the wallpaper in every IDE that has the extension, list and add wallpapers, all by chat. Ships on GitHub Releases as a `.mcpb` (one-click install in Claude desktop) and a standalone `live-wallpaper-studio-mcp.js`.

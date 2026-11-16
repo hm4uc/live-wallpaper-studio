@@ -53,7 +53,7 @@ Most background extensions for VS Code make you paste image paths into `settings
 | Animated wallpapers | Heavy GIFs only | GIF, MP4/WebM **and** lightweight pixel themes drawn in code |
 | "Installation corrupt" warning | After every change | Never after the first restart (checksum kept in sync) |
 | Multiple windows | Each window on its own | All windows show the same wallpaper, in sync |
-| Battery | Keeps animating | Pauses when the IDE isn't focused |
+| Battery | Keeps animating | Keeps playing behind other apps, pauses when the IDE is minimized or hidden (optionally also when unfocused) |
 | Uninstall | May leave the IDE patched | Restores the IDE byte for byte |
 
 ## Features
@@ -67,7 +67,7 @@ Most background extensions for VS Code make you paste image paths into `settings
 - 🌗 **Day / night playlists.** Tag images ☀ or ☾ and the IDE switches by the time of day.
 - 📁 **Per-project wallpapers.** Each project can have its own wallpaper.
 - 📂 **Your library is a plain folder.** Drop files in, drag and drop into the picker, or paste a URL.
-- 🔋 **Easy on resources.** GIFs freeze and videos and themes pause when the IDE loses focus. The OS *reduce motion* setting is respected. Heavy GIFs convert to MP4 with ffmpeg in one click.
+- 🔋 **Easy on resources.** The wallpaper keeps playing while you work in another app and pauses when the IDE is minimized or hidden (turn on *Pause when the IDE is not focused* to save more battery). Blur is rendered at low resolution, the runtime stays idle between changes, and the OS *reduce motion* setting is respected. One click converts heavy GIFs and videos to an MP4 sized for your screen, at ≤ 30 fps, in a codec your GPU decodes (H.264 / HEVC / VP9 / AV1).
 - 🌍 **English & Tiếng Việt.** The UI follows the IDE display language.
 - 💻 **Windows, macOS, Linux.** Tested in CI on all three.
 
@@ -150,7 +150,7 @@ Inside the picker: `← → ↑ ↓` preview · `Enter` apply · `Esc` cancel ·
 | Setting | Default | Description |
 |---|---|---|
 | `wallpaperStudio.libraryPath` | automatic | Library folder (`<Pictures>/IDE Wallpapers`, skipping OneDrive, or `~/IDE Wallpapers`) |
-| `wallpaperStudio.ffmpegPath` | search `PATH` | ffmpeg, used to optimize heavy GIFs |
+| `wallpaperStudio.ffmpegPath` | search `PATH` | ffmpeg, used to optimize heavy GIFs and videos |
 | `wallpaperStudio.statusBar` | `true` | Show the status bar button |
 | `wallpaperStudio.autoRepair` | `true` | Offer to re-apply after an IDE update |
 | `wallpaperStudio.language` | `auto` | `auto`, `en` or `vi` |

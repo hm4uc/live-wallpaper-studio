@@ -24,7 +24,7 @@ Pick one from a visual gallery, **switch instantly without reloading**, and let 
 - **Auto-rotation**: every 1 minute to 3 hours, in order or shuffled (no repeats until every image has been shown), optionally only your ★ favorites. All IDE windows always show the same wallpaper.
 - **Day / night**: tag images ☀ or ☾ and the IDE switches by the time of day.
 - **Per-project wallpapers**: give a project its own wallpaper.
-- **Easy on resources**: GIFs freeze and videos/themes pause when the IDE loses focus. The OS *reduce motion* setting is respected. Heavy GIFs can be converted to MP4 with ffmpeg.
+- **Easy on resources**: the wallpaper keeps playing behind other apps and pauses when the IDE is minimized or hidden (optionally also when it loses focus). Blur is rendered at low resolution and the runtime stays idle between changes. The OS *reduce motion* setting is respected. Heavy GIFs and videos can be converted with ffmpeg to an MP4 sized for your screen, at ≤ 30 fps, in a codec your GPU decodes.
 - **English and Vietnamese** UI. It follows the IDE display language, or set `wallpaperStudio.language`.
 
 ## Keyboard shortcuts
@@ -54,7 +54,7 @@ Open the Command Palette (`Ctrl+Shift+P` / `⌘⇧P`) and type **Wallpaper**:
 | Open Wallpaper Folder | Open the library folder in your file manager |
 | Set Auto-Rotation… | Rotate every 1 minute – 3 hours, in order or shuffled |
 | Use Current Wallpaper for This Project / Clear This Project’s Wallpaper | Per-project wallpaper |
-| Optimize Heavy GIFs (Convert to MP4) | Needs ffmpeg |
+| Optimize Heavy GIFs & Videos | Needs ffmpeg. Screen-sized MP4, ≤ 30 fps, hardware-decoded codec; originals kept in `.originals` |
 | Install / Repair Runtime | One-time setup (one reload) |
 | Remove Runtime and Restore the IDE | Put the IDE back exactly as it was |
 | Show Status | Runtime, library and current wallpaper |

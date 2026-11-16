@@ -12,7 +12,7 @@
   "command.addFromUrl": "Add Wallpaper from URL…",
   "command.openLibraryFolder": "Open Wallpaper Folder",
   "command.setRotation": "Set Auto-Rotation…",
-  "command.optimizeHeavy": "Optimize Heavy GIFs (Convert to MP4)",
+  "command.optimizeHeavy": "Optimize Heavy GIFs & Videos (MP4, screen size, efficient codec)",
   "command.setWorkspaceWallpaper": "Use Current Wallpaper for This Project",
   "command.clearWorkspaceWallpaper": "Clear This Project’s Wallpaper",
   "command.install": "Install / Repair Runtime (One Reload)",

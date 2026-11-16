@@ -7,6 +7,9 @@ declare const __EXT_ID__: string | undefined;
 /** `publisher.name` (lowercase = globalStorage folder). Injected from package.json at build time. */
 export const EXT_ID: string = typeof __EXT_ID__ !== 'undefined' ? __EXT_ID__ : 'minhd.wallpaper-studio';
 export const STATE_FILE = 'state.json';
+/** A few bytes holding `state.rev`, written right after state.json. The runtime polls this
+ *  instead of the whole state, and fetches state.json only when the revision changes. */
+export const REV_FILE = 'state.rev';
 export const MSG_TAG = '__wallpaperStudio';
 
 export type ItemKind = 'image' | 'gif' | 'video' | 'theme';
@@ -41,7 +44,8 @@ export interface DisplaySettings {
   position: string;
   blur: number;
   blend: Blend;
-  /** Freeze GIF / pause video & themes while the window is not focused. */
+  /** Freeze GIF / pause video & themes while the window is not focused (off by default: the
+   *  wallpaper keeps playing behind other apps; a minimized / hidden window always pauses). */
   pauseWhenUnfocused: boolean;
 }
 
@@ -104,7 +108,7 @@ export const DEFAULT_DISPLAY: DisplaySettings = {
   position: 'center',
   blur: 0,
   blend: 'auto',
-  pauseWhenUnfocused: true,
+  pauseWhenUnfocused: false,
 };
 
 export function defaultState(): WallpaperState {

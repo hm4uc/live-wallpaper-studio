@@ -524,6 +524,7 @@ function openMenu(id: string, x: number, y: number) {
       post({ type: 'meta', id, patch: { opacity: typeof it.opacity === 'number' ? null : S!.state.display.opacity } })],
     [t('Rename…'), () => post({ type: 'rename', id })],
     it.kind === 'gif' ? [it.heavy ? t('⚡ Optimize: convert GIF → MP4 (less CPU)') : t('Convert GIF → MP4 (smaller file; small GIFs are already light on CPU)'), () => post({ type: 'optimize', id })] : null,
+    it.kind === 'video' ? [t('⚡ Optimize video (screen size, ≤ 30 fps, hardware-decoded codec)'), () => post({ type: 'optimize', id })] : null,
     it.file ? [t('Show in folder'), () => post({ type: 'reveal', id })] : null,
     null,
     [it.kind === 'theme' ? t('Hide this theme') : t('Delete (move to trash)'), () => post({ type: 'delete', id })],
@@ -646,7 +647,7 @@ function renderControls() {
         h('span', {}, t('Folder: ')),
         h('code', {}, S.libraryDir),
         S.hiddenThemes ? h('button', { class: 'link', onclick: () => post({ type: 'restoreThemes' }) }, t('Show {0} hidden theme(s)', S.hiddenThemes)) : null,
-        h('button', { class: 'link', onclick: () => post({ type: 'command', command: 'wallpaperStudio.optimizeHeavy' }) }, t('Optimize heavy GIFs')),
+        h('button', { class: 'link', onclick: () => post({ type: 'command', command: 'wallpaperStudio.optimizeHeavy' }) }, t('Optimize heavy GIFs & videos')),
         h('button', { class: 'link', onclick: () => post({ type: 'command', command: 'wallpaperStudio.uninstall' }) }, t('Remove runtime')),
       ),
     );
@@ -745,4 +746,33 @@ window.addEventListener('message', (e) => {
 
 const probe = document.createElement('video');
 post({ type: 'ready', h264: probe.canPlayType('video/mp4; codecs="avc1.42E01E"') === 'probably' });
+
+/**
+ * Which codecs this IDE's Chromium decodes in hardware (powerEfficient) at the screen's size.
+ * The extension uses it to pick the codec when optimizing GIFs / videos. Runs after `ready`
+ * so it never delays the picker.
+ */
+async function probeCodecs() {
+  const dpr = window.devicePixelRatio || 1;
+  // Largest screen dimension in physical pixels; the wallpaper never needs more than this.
+  const w = Math.round(Math.max(screen.width, screen.availWidth) * dpr);
+  const h = Math.round(Math.max(screen.height, screen.availHeight) * dpr);
+  const types: Record<string, string> = {
+    h264: 'video/mp4; codecs="avc1.640028"',
+    hevc: 'video/mp4; codecs="hvc1.1.6.L123.B0"',
+    vp9: 'video/mp4; codecs="vp09.00.40.08"',
+    av1: 'video/mp4; codecs="av01.0.08M.08"',
+  };
+  const report: Record<string, { supported: boolean; smooth: boolean; powerEfficient: boolean }> = {};
+  for (const [k, contentType] of Object.entries(types)) {
+    try {
+      const r = await navigator.mediaCapabilities.decodingInfo({ type: 'file', video: { contentType, width: Math.min(w, 3840), height: Math.min(h, 2160), bitrate: 8_000_000, framerate: 30 } });
+      report[k] = { supported: r.supported, smooth: r.smooth, powerEfficient: r.powerEfficient };
+    } catch {
+      report[k] = { supported: probe.canPlayType(contentType) !== '', smooth: false, powerEfficient: false };
+    }
+  }
+  post({ type: 'codecs', report, screen: { w, h } });
+}
+void probeCodecs();
 void THEMES; // keep the registry in the bundle for thumbnails

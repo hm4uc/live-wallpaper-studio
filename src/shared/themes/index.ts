@@ -38,45 +38,72 @@ function countFor(base: number, w: number, h: number, density: number): number {
   return Math.max(1, Math.round(base * ((w * h) / (320 * 180)) * (0.15 + density * 1.7)));
 }
 
-function vgrad(ctx: CanvasRenderingContext2D, h: number, stops: [number, string][]): CanvasGradient {
+function vgrad(ctx: Pick<CanvasRenderingContext2D, 'createLinearGradient'>, h: number, stops: [number, string][]): CanvasGradient {
   const g = ctx.createLinearGradient(0, 0, 0, h);
   for (const [o, c] of stops) g.addColorStop(o, c);
   return g;
 }
 
-/** Shared scaffolding: background gradient cache + particle pool sized by density. */
+type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+type Layer = OffscreenCanvas | HTMLCanvasElement;
+
+/** A canvas outside the DOM for cached layers; null where none exists (unit tests). */
+function makeLayer(w: number, h: number): Layer | null {
+  if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(w, h);
+  if (typeof document !== 'undefined') {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    return c;
+  }
+  return null;
+}
+
+/**
+ * Shared scaffolding: particle pool sized by density, and the static scenery (gradient sky +
+ * backdrop) painted ONCE per size into an offscreen layer. Each frame then blits that layer
+ * with a single drawImage instead of re-issuing hundreds of fillRects — the frame cost becomes
+ * just the moving particles. Backdrops must therefore not depend on time or randomness.
+ */
 function makeTheme<P>(opts: {
   bg: [number, string][];
   base: number;
   spawn: (r: Rnd, w: number, h: number, initial: boolean) => P;
   update: (p: P, dt: number, speed: number, w: number, h: number, r: Rnd, t: number) => boolean; // false = respawn
   draw: (ctx: CanvasRenderingContext2D, p: P, t: number) => void;
-  backdrop?: (ctx: CanvasRenderingContext2D, w: number, h: number, t: number, r: Rnd) => void;
+  backdrop?: (ctx: Ctx2D, w: number, h: number) => void;
 }) {
+  const paintScenery = (ctx: Ctx2D, w: number, h: number) => {
+    ctx.fillStyle = vgrad(ctx, h, opts.bg);
+    ctx.fillRect(0, 0, w, h);
+    opts.backdrop?.(ctx, w, h);
+  };
   return (w0: number, h0: number, seed = 7): ThemeInstance => {
     const r = rng(seed);
     let w = w0;
     let h = h0;
     let t = 0;
-    let grad: CanvasGradient | null = null;
-    let gradH = -1;
+    let scenery: Layer | null = null;
+    let sceneryKey = '';
     const pool: P[] = [];
     return {
       resize(nw, nh) {
         w = nw;
         h = nh;
         pool.length = 0;
-        gradH = -1;
       },
       frame(ctx, dt, density, speed) {
         t += dt;
-        if (!grad || gradH !== h) {
-          grad = vgrad(ctx, h, opts.bg);
-          gradH = h;
+        const key = `${w}x${h}`;
+        if (sceneryKey !== key) {
+          sceneryKey = key;
+          scenery = w > 0 && h > 0 ? makeLayer(w, h) : null;
+          const lctx = scenery?.getContext('2d') as Ctx2D | null | undefined;
+          if (lctx) paintScenery(lctx, w, h);
+          else scenery = null;
         }
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
-        opts.backdrop?.(ctx, w, h, t, r);
+        if (scenery) ctx.drawImage(scenery, 0, 0);
+        else paintScenery(ctx, w, h);
         const want = countFor(opts.base, w, h, density);
         while (pool.length < want) pool.push(opts.spawn(r, w, h, true));
         if (pool.length > want) pool.length = want;

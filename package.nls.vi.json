@@ -12,7 +12,7 @@
   "command.addFromUrl": "Thêm ảnh từ URL…",
   "command.openLibraryFolder": "Mở thư mục ảnh",
   "command.setRotation": "Đặt chế độ tự đổi ảnh…",
-  "command.optimizeHeavy": "Tối ưu các GIF nặng (chuyển sang MP4)",
+  "command.optimizeHeavy": "Tối ưu GIF & video nặng (MP4, vừa màn hình, codec hiệu quả)",
   "command.setWorkspaceWallpaper": "Dùng ảnh hiện tại cho riêng project này",
   "command.clearWorkspaceWallpaper": "Bỏ ảnh riêng của project này",
   "command.install": "Cài đặt / sửa lại runtime (cần reload 1 lần)",

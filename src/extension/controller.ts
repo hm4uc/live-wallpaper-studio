@@ -8,7 +8,7 @@ import {
 } from '../core/library';
 import { StateStore, defaultProfileStorage } from '../core/stateStore';
 import * as patcher from '../core/patcher';
-import { downloadToLibrary, findFfmpeg, gifToMp4 } from '../core/media';
+import { chooseCodec, downloadToLibrary, findFfmpeg, listEncoders, probeMedia, planTranscode, transcodeInLibrary, type CodecReport } from '../core/media';
 import { randomOther, resolveActive, stepFrom, type Resolution } from '../shared/rotation';
 import { t } from '../shared/i18n';
 import { manifestLists } from '../runtime/url';
@@ -55,18 +55,22 @@ export class Controller implements vscode.Disposable {
     this.resolveLibraryDir();
     await this.migrateLegacy();
     this.rescan();
+    this.migratePlayWhenUnfocused();
     this.watchLibrary();
     this.checkRuntime();
     this.recordManifest();
     this.updateStatusBar();
-    // Status bar countdown + pick up changes written by other windows.
+    // Status bar countdown + pick up changes written by other windows. `read()` is a stat + a
+    // few-byte read unless the state changed; the status bar only needs refreshing when the
+    // state changed or something time-based (rotation / day-night schedule) can change it.
     this.stateWatchTimer = setInterval(() => {
       const s = this.store.read();
-      if (s.rev !== this.lastStateRev) {
+      const changed = s.rev !== this.lastStateRev;
+      if (changed) {
         this.lastStateRev = s.rev;
         this.changeEmitter.fire();
       }
-      this.updateStatusBar(s);
+      if (changed || s.rotate.intervalSec > 0 || s.schedule.enabled) this.updateStatusBar(s);
     }, 2000);
     this.disposables.push(
       vscode.workspace.onDidChangeConfiguration((e) => {
@@ -90,7 +94,15 @@ export class Controller implements vscode.Disposable {
   // ------------------------------------------------------------------ library
   private resolveLibraryDir() {
     const configured = vscode.workspace.getConfiguration('wallpaperStudio').get<string>('libraryPath')?.trim();
-    this.libraryDir = configured ? configured.replace(/^~(?=$|[\\/])/, process.env.USERPROFILE || process.env.HOME || '~') : defaultLibraryPath();
+    if (configured) {
+      this.libraryDir = configured.replace(/^~(?=$|[\\/])/, process.env.USERPROFILE || process.env.HOME || '~');
+    } else {
+      // Finding the Pictures folder can spawn `reg query` (Windows) synchronously; do it once and
+      // keep using that folder (it is where the user's wallpapers are, even if Pictures moves later).
+      const cached = this.ctx.globalState.get<string>('defaultLibraryDir');
+      this.libraryDir = cached && fs.existsSync(cached) ? cached : defaultLibraryPath();
+      if (this.libraryDir !== cached) void this.ctx.globalState.update('defaultLibraryDir', this.libraryDir);
+    }
     fs.mkdirSync(this.libraryDir, { recursive: true });
   }
 
@@ -197,39 +209,74 @@ export class Controller implements vscode.Disposable {
       vscode.window.showWarningMessage(t('ffmpeg not found. Install it (e.g. winget install ffmpeg / brew install ffmpeg / apt install ffmpeg) or set "wallpaperStudio.ffmpegPath".'));
       return;
     }
-    const targets = (itemIds ? itemIds.map((id) => this.fileFor(id)) : this.files.filter((f) => f.kind === 'gif' && f.heavy)).filter(
-      (f): f is ScannedFile => !!f && f.kind === 'gif',
+    // Explicit picks: any GIF / video. "Optimize all": heavy GIFs (small GIFs are cheaper than
+    // video) + every video (each one is probed and skipped when it already fits).
+    const targets = (itemIds ? itemIds.map((id) => this.fileFor(id)) : this.files.filter((f) => (f.kind === 'gif' && f.heavy) || f.kind === 'video')).filter(
+      (f): f is ScannedFile => !!f && (f.kind === 'gif' || f.kind === 'video'),
     );
     if (!targets.length) {
-      vscode.window.showInformationMessage(t('No heavy GIFs to optimize. (GIFs smaller than ~900×500 use less CPU as GIF than as video.)'));
+      vscode.window.showInformationMessage(t('Nothing to optimize. (GIFs smaller than ~900×500 use less CPU as GIF than as video.)'));
       return;
     }
-    const state = this.store.read();
+    const report = this.ctx.globalState.get<CodecReport>('codecs');
+    const codec = chooseCodec(report, await listEncoders(ffmpeg), this.ctx.globalState.get<boolean>('h264', false));
+    const screen = this.ctx.globalState.get<{ w: number; h: number }>('screen') ?? { w: 1920, h: 1080 };
     let saved = 0;
-    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: t('Optimizing GIF → MP4'), cancellable: false }, async (p) => {
+    let done = 0;
+    let fine = 0;
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: t('Optimizing wallpapers ({0})', codec.toUpperCase()), cancellable: false }, async (p) => {
       for (const [i, f] of targets.entries()) {
         p.report({ message: `${i + 1}/${targets.length}: ${f.file}` });
         try {
-          const out = await gifToMp4(ffmpeg, f.abs, this.ctx.globalState.get<boolean>('h264', false) ? 'h264' : 'vp9');
-          saved += f.size - fs.statSync(out).size;
-          const oldId = 'file:' + f.file;
-          const newId = 'file:' + path.basename(out);
-          if (this.meta.items[f.file]) {
-            this.meta.items[path.basename(out)] = this.meta.items[f.file];
-            delete this.meta.items[f.file];
-            writeJsonAtomic(this.metaFile, this.meta);
+          const isGif = f.kind === 'gif';
+          const probe = await probeMedia(ffmpeg, f.abs);
+          if (!probe) throw new Error(t('could not read the video stream'));
+          const plan = planTranscode(probe, screen, codec, report, isGif);
+          if (!plan) {
+            fine++;
+            continue;
           }
-          if (state.current === oldId) this.store.update((s) => void (s.current = newId));
-          this.store.update((s) => {
-            for (const k of Object.keys(s.workspaces)) if (s.workspaces[k] === oldId) s.workspaces[k] = newId;
-          });
+          const out = await transcodeInLibrary(ffmpeg, f.abs, plan, isGif);
+          saved += f.size - fs.statSync(out).size;
+          done++;
+          this.renameItemRefs(f.file, path.basename(out));
         } catch (e) {
           vscode.window.showErrorMessage(t('Optimizing {0} failed: {1}', f.file, (e as Error).message));
         }
       }
     });
     this.rescan();
-    if (saved > 0) vscode.window.showInformationMessage(t('Optimized {0} GIF(s), saved {1} MB. The originals are in the .originals folder.', targets.length, (saved / 1048576).toFixed(1)));
+    if (done > 0) {
+      vscode.window.showInformationMessage(
+        t('Optimized {0} file(s) ({1}, ≤ {2}×{3}, ≤ 30 fps), saved {4} MB. The originals are in the .originals folder.', done, codec.toUpperCase(), screen.w, screen.h, (saved / 1048576).toFixed(1)),
+      );
+    } else if (fine > 0) {
+      vscode.window.showInformationMessage(t('Already optimal: {0} file(s) fit the screen, run at ≤ 30 fps and use an efficient codec.', fine));
+    }
+  }
+
+  /** Keep favourites, names, the selection and project assignments when a file is renamed. */
+  private renameItemRefs(oldFile: string, newFile: string) {
+    if (oldFile === newFile) return;
+    if (this.meta.items[oldFile]) {
+      this.meta.items[newFile] = this.meta.items[oldFile];
+      delete this.meta.items[oldFile];
+      writeJsonAtomic(this.metaFile, this.meta);
+    }
+    const oldId = 'file:' + oldFile;
+    const newId = 'file:' + newFile;
+    this.store.update((s) => {
+      if (s.current === oldId) s.current = newId;
+      for (const k of Object.keys(s.workspaces)) if (s.workspaces[k] === oldId) s.workspaces[k] = newId;
+    });
+  }
+
+  /** v1.3: wallpapers keep playing while another app has focus (a hidden window still pauses).
+   *  Earlier builds wrote `pauseWhenUnfocused: true` for everyone, so flip it once. */
+  private migratePlayWhenUnfocused() {
+    if (this.ctx.globalState.get<boolean>('playUnfocusedMigrated')) return;
+    this.store.update((s) => void (s.display.pauseWhenUnfocused = false));
+    void this.ctx.globalState.update('playUnfocusedMigrated', true);
   }
 
   // ------------------------------------------------------------------ selection
@@ -396,7 +443,8 @@ export class Controller implements vscode.Disposable {
 
   checkRuntime() {
     try {
-      const st = patcher.getStatus(this.appRoot());
+      // Tail-only read: the checksum (a hash of the whole multi-MB bundle) is handled by ensureChecksum.
+      const st = patcher.getStatus(this.appRoot(), { checksum: false });
       if (!st.installed) {
         this.runtimeStatus = 'notInstalled';
         const wasInstalled = this.ctx.globalState.get<boolean>('everInstalled', false);
@@ -419,7 +467,7 @@ export class Controller implements vscode.Disposable {
         this.runtimeStatus = 'active';
       } else {
         this.runtimeStatus = 'active';
-        if (st.checksumOk === false) patcher.syncChecksum(this.appRoot());
+        this.ensureChecksum(st);
         this.disableLegacyExtension(); // otherwise shalldie.background re-patches on startup
       }
     } catch (e) {
@@ -428,6 +476,27 @@ export class Controller implements vscode.Disposable {
     }
     this.updateStatusBar();
     this.changeEmitter.fire();
+  }
+
+  /**
+   * Keep product.json's checksum in line with the patched bundle without hashing the bundle on
+   * every start: hash only when the bundle or product.json changed since the last verified sync
+   * (IDE update, another tool touched them).
+   */
+  private ensureChecksum(st: patcher.PatchStatus) {
+    const root = this.appRoot();
+    const stamp = () => {
+      try {
+        const p = fs.statSync(path.join(root, 'product.json'));
+        const w = fs.statSync(st.workbenchPath);
+        return `${w.size}:${w.mtimeMs}|${p.size}:${p.mtimeMs}`;
+      } catch {
+        return null;
+      }
+    };
+    const before = stamp();
+    if (before && before === this.ctx.globalState.get<string>('checksumStamp')) return;
+    if (patcher.syncChecksum(root)) void this.ctx.globalState.update('checksumStamp', stamp());
   }
 
   install(promptReload: boolean): boolean {
