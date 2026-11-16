@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.5
+
+- IDE installed for all users (Linux .deb / .rpm under `/usr/share`, Windows Program Files, macOS app owned by another account): a new **Use administrator password** button installs, updates or removes the runtime through the system's own prompt (pkexec on Linux, the administrator dialog on macOS, UAC on Windows). No terminal needed.
+- The copy-paste fallback is now `sudo env ELECTRON_RUN_AS_NODE=1 …`, which also works where sudoers forbids `sudo VAR=… command`.
+- *Remove Runtime and Restore the IDE* offers the same administrator prompt instead of failing.
+- After an extension update on such installs, the prompt appears once per version instead of on every start.
+
 ## 1.1.4
 
 - Uninstalling the extension turns the wallpaper (and the translucent *See-through* frame) off within a few seconds, without waiting for the IDE to restart.
