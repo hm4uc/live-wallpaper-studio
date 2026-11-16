@@ -12,6 +12,7 @@ media/readme/**
 .github/**
 README.md
 AGENTS.md
+AGENT.md
 CLAUDE.md
 GEMINI.md
 dist/mcp.js
