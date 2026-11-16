@@ -161,7 +161,7 @@ Updates replace the IDE's files. Click **Re-apply** in the notification, or run 
 <details>
 <summary><b>"Can't write the IDE's files" (EPERM / EACCES).</b></summary>
 
-The IDE is installed for all users (Program Files, `/usr/share`, another macOS account). Click **Copy fix command** and run it in an elevated terminal. Snap and Flatpak builds are read-only and not supported: use the .deb / .rpm / .tar.gz build.
+The IDE is installed for all users (Program Files, `/usr/share`, another macOS account). Click **Use administrator password** and confirm the system password / UAC prompt. Without a password dialog, **Copy fix command** gives the same command to run in an elevated terminal. Snap and Flatpak builds are read-only and not supported: use the .deb / .rpm / .tar.gz build.
 </details>
 
 <details>

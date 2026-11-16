@@ -80,9 +80,11 @@ VS Code doesn't let extensions draw on the main window. Live Wallpaper Studio ad
 | OS | Typical case | What to do |
 |---|---|---|
 | Windows (user install) | Nothing needed | — |
-| Windows (Program Files) | Needs Administrator rights | Click *Copy fix command*, then paste it into PowerShell run as Administrator |
-| macOS | Usually nothing needed | If the app belongs to another account: *Copy fix command* (sudo) |
-| Linux (.deb / .rpm) | The folder is owned by root | *Copy fix command* (sudo) |
+| Windows (Program Files) | Needs Administrator rights | Click *Use administrator password* and accept the UAC prompt |
+| macOS | Usually nothing needed | If the app belongs to another account: *Use administrator password* |
+| Linux (.deb / .rpm) | The folder is owned by root | Click *Use administrator password* (system password dialog, via pkexec) |
+
+No password dialog (for example no polkit agent on a minimal Linux desktop)? *Copy fix command* gives the same command to paste into a terminal (`sudo env ELECTRON_RUN_AS_NODE=1 …`, or PowerShell as Administrator on Windows). IDE and extension updates need the same step again, once per update.
 | Linux Snap / Flatpak | Read-only file system | Not supported. Use the .deb / .rpm / .tar.gz build |
 
 ## Known limitations

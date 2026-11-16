@@ -54,6 +54,8 @@ const VI: Record<string, string> = {
   'Live Wallpaper Studio is installed. Reload the window to turn the wallpaper on.': 'Đã cài Live Wallpaper Studio. Reload cửa sổ để bật ảnh nền.',
   'Reload now': 'Reload ngay',
   'Copy fix command': 'Sao chép lệnh sửa',
+  'Use administrator password': 'Dùng mật khẩu quản trị',
+  'Administrator rights were not granted.': 'Chưa được cấp quyền quản trị.',
   "Can't write the IDE's files ({0}). {1}": 'Không ghi được file của IDE ({0}). {1}',
   ' Run the copied command in a terminal (as administrator), then reload.': ' Chạy lệnh đã sao chép trong terminal (quyền quản trị) rồi Reload.',
   'Installing the runtime failed: {0}': 'Cài runtime thất bại: {0}',

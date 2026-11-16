@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { permissionHelp } from '../src/core/patcher';
+import { elevatedCommand, permissionHelp } from '../src/core/patcher';
+import { execFileSync } from 'node:child_process';
 import { ffmpegCandidates } from '../src/core/media';
 import { xdgPicturesDir } from '../src/core/library';
 import { candidates } from '../src/extension/uninstall';
@@ -20,9 +21,10 @@ describe('permission help per OS', () => {
   });
   it('macOS / Linux → sudo command', () => {
     const mac = permissionHelp('/Applications/IDE.app/Contents/Resources/app', '/u/ext/dist/cli.js', '/Applications/IDE.app/Contents/Frameworks/IDE Helper (Plugin).app/Contents/MacOS/IDE Helper (Plugin)', 'darwin');
-    expect(mac.command?.startsWith('sudo ELECTRON_RUN_AS_NODE=1 "/Applications/IDE.app/')).toBe(true);
+    expect(mac.command?.startsWith('sudo env ELECTRON_RUN_AS_NODE=1 "/Applications/IDE.app/')).toBe(true);
     const linux = permissionHelp('/usr/share/code/resources/app', '/home/u/ext/dist/cli.js', '/usr/share/code/code', 'linux');
-    expect(linux.command).toBe('sudo ELECTRON_RUN_AS_NODE=1 "/usr/share/code/code" "/home/u/ext/dist/cli.js" install "/usr/share/code/resources/app"');
+    expect(linux.command).toBe('sudo env ELECTRON_RUN_AS_NODE=1 "/usr/share/code/code" "/home/u/ext/dist/cli.js" install "/usr/share/code/resources/app"');
+    expect(permissionHelp('/usr/share/code/resources/app', 'c', 'e', 'linux', 'uninstall').command).toContain(' uninstall ');
   });
   it('Snap / Flatpak are read-only → no command, explain instead', () => {
     expect(permissionHelp('/snap/code/123/usr/share/code/resources/app', 'x', 'y', 'linux').command).toBeNull();
@@ -77,5 +79,49 @@ describe('renderer URLs & workspace keys', () => {
     expect(workspaceKeyFromConfig({ workspace: { uri: { scheme: 'file', path: '/Users/A/Proj' } } })).toBe('file:/users/a/proj');
     expect(workspaceKeyFromConfig({ workspace: { configPath: { scheme: 'file', path: '/c:/W/x.code-workspace' } } })).toBe('file:/c:/w/x.code-workspace');
     expect(workspaceKeyFromConfig({})).toBeNull();
+  });
+});
+
+describe('one-click elevation per OS', () => {
+  it('Linux → pkexec env …, argv passed without a shell', () => {
+    expect(elevatedCommand('/usr/share/code/resources/app', '/home/u/cli.js', '/usr/share/code/code', 'install', 'linux')).toEqual({
+      file: 'pkexec',
+      args: ['env', 'ELECTRON_RUN_AS_NODE=1', '/usr/share/code/code', '/home/u/cli.js', 'install', '/usr/share/code/resources/app'],
+    });
+  });
+  it('macOS → osascript admin dialog; Windows → UAC via Start-Process -Verb RunAs', () => {
+    const mac = elevatedCommand('/Applications/A.app/Contents/Resources/app', '/u/cli.js', '/Applications/A.app/x', 'uninstall', 'darwin')!;
+    expect(mac.file).toBe('/usr/bin/osascript');
+    expect(mac.args[1]).toMatch(/^do shell script ".*" with administrator privileges$/);
+    const win = elevatedCommand('C:\\Program Files\\IDE\\resources\\app', 'C:\\cli.js', 'C:\\Program Files\\IDE\\IDE.exe', 'install', 'win32')!;
+    expect(win.file).toBe('powershell.exe');
+    expect(win.args.at(-1)).toContain('-Verb RunAs');
+    const b64 = /'-EncodedCommand','([A-Za-z0-9+/=]+)'/.exec(win.args.at(-1)!)![1];
+    expect(Buffer.from(b64, 'base64').toString('utf16le')).toBe("$env:ELECTRON_RUN_AS_NODE='1'; & 'C:\\Program Files\\IDE\\IDE.exe' 'C:\\cli.js' install 'C:\\Program Files\\IDE\\resources\\app'; exit $LASTEXITCODE");
+  });
+  it('read-only Snap / Flatpak → nothing to elevate', () => {
+    expect(elevatedCommand('/snap/code/1/usr/share/code/resources/app', 'c', 'e', 'install', 'linux')).toBeNull();
+  });
+
+  // Runs the command for the CURRENT OS (CI covers Linux, macOS, Windows), minus the
+  // password prompt itself, against paths with spaces, quotes and shell metacharacters.
+  it('the elevated command line reaches the CLI with the exact arguments on this OS', () => {
+    const dir = path.join(tmp, "it's a dir & more");
+    fs.mkdirSync(dir);
+    const out = path.join(tmp, 'out.json');
+    const cli = path.join(dir, 'cli.js');
+    fs.writeFileSync(cli, `require('fs').writeFileSync(${JSON.stringify(out)}, JSON.stringify({ argv: process.argv.slice(2), env: process.env.ELECTRON_RUN_AS_NODE }))`);
+    const appRoot = path.join(dir, 'resources', 'app');
+    const cmd = elevatedCommand(appRoot, cli, process.execPath, 'install')!;
+    if (process.platform === 'linux') {
+      execFileSync(cmd.args[0], cmd.args.slice(1)); // what pkexec runs as root
+    } else if (process.platform === 'darwin') {
+      const as = /^do shell script "(.*)" with administrator privileges$/.exec(cmd.args[1])![1];
+      execFileSync('/bin/sh', ['-c', as.replace(/\\(["\\])/g, '$1')]); // what the admin dialog runs
+    } else if (process.platform === 'win32') {
+      const b64 = /'-EncodedCommand','([A-Za-z0-9+/=]+)'/.exec(cmd.args.at(-1)!)![1];
+      execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', b64]); // what UAC runs
+    } else return;
+    expect(JSON.parse(fs.readFileSync(out, 'utf8'))).toEqual({ argv: ['install', appRoot], env: '1' });
   });
 });

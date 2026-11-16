@@ -176,8 +176,10 @@ export function uninstall(appRoot: string): { changed: boolean; checksumSynced: 
   return { changed, checksumSynced };
 }
 
+export type PatchAction = 'install' | 'uninstall';
+
 /** Human explanation + a copy-paste command for installs the IDE user cannot write to. */
-export function permissionHelp(appRoot: string, cliPath: string, execPath: string, platform: NodeJS.Platform = process.platform): { reason: string; command: string | null } {
+export function permissionHelp(appRoot: string, cliPath: string, execPath: string, platform: NodeJS.Platform = process.platform, action: PatchAction = 'install'): { reason: string; command: string | null } {
   const ro = /[\\/]snap[\\/]|^\/app[\\/]|flatpak/i.test(appRoot);
   if (ro) {
     return {
@@ -189,11 +191,36 @@ export function permissionHelp(appRoot: string, cliPath: string, execPath: strin
   if (platform === 'win32') {
     return {
       reason: t('The IDE is installed for all users (the folder needs Administrator rights).'),
-      command: `$env:ELECTRON_RUN_AS_NODE=1; & ${q(execPath)} ${q(cliPath)} install ${q(appRoot)}`,
+      command: `$env:ELECTRON_RUN_AS_NODE=1; & ${q(execPath)} ${q(cliPath)} ${action} ${q(appRoot)}`,
     };
   }
   return {
     reason: platform === 'darwin' ? t('The IDE app belongs to another account / an administrator.') : t('The IDE install folder is owned by root.'),
-    command: `sudo ELECTRON_RUN_AS_NODE=1 ${q(execPath)} ${q(cliPath)} install ${q(appRoot)}`,
+    // `sudo env VAR=…` works even where sudoers forbids `sudo VAR=… cmd`.
+    command: `sudo env ELECTRON_RUN_AS_NODE=1 ${q(execPath)} ${q(cliPath)} ${action} ${q(appRoot)}`,
   };
+}
+
+/**
+ * One-click elevation through the OS's own password prompt: pkexec (Linux / polkit),
+ * the administrator dialog (macOS), UAC (Windows). Returns the program + argv to spawn
+ * (no shell in between); null for read-only installs.
+ */
+export function elevatedCommand(appRoot: string, cliPath: string, execPath: string, action: PatchAction, platform: NodeJS.Platform = process.platform): { file: string; args: string[] } | null {
+  if (permissionHelp(appRoot, cliPath, execPath, platform).command === null) return null;
+  if (platform === 'linux') return { file: 'pkexec', args: ['env', 'ELECTRON_RUN_AS_NODE=1', execPath, cliPath, action, appRoot] };
+  if (platform === 'darwin') {
+    const sh = (x: string) => "'" + x.replace(/'/g, "'\\''") + "'";
+    const shell = `ELECTRON_RUN_AS_NODE=1 ${[execPath, cliPath, action, appRoot].map(sh).join(' ')}`;
+    const as = '"' + shell.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    return { file: '/usr/bin/osascript', args: ['-e', `do shell script ${as} with administrator privileges`] };
+  }
+  if (platform === 'win32') {
+    const ps = (x: string) => "'" + x.replace(/'/g, "''") + "'";
+    const inner = `$env:ELECTRON_RUN_AS_NODE='1'; & ${ps(execPath)} ${ps(cliPath)} ${action} ${ps(appRoot)}; exit $LASTEXITCODE`;
+    const encoded = Buffer.from(inner, 'utf16le').toString('base64');
+    const outer = `$p = Start-Process -FilePath powershell.exe -Verb RunAs -Wait -PassThru -WindowStyle Hidden -ArgumentList '-NoProfile','-NonInteractive','-EncodedCommand','${encoded}'; exit $p.ExitCode`;
+    return { file: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-Command', outer] };
+  }
+  return null;
 }
