@@ -4,7 +4,6 @@
  * into script text. Pure builders + a small runner.
  */
 import { execFile } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 
 export interface Step {
   file: string;
@@ -35,7 +34,7 @@ export function desktopWallpaperSteps(image: string, platform: NodeJS.Platform =
   if (platform === 'win32') return [{ file: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-Command', WIN_PS], env: { LWS_WALLPAPER: image } }];
   if (platform !== 'linux') return null;
   const de = (env.XDG_CURRENT_DESKTOP || env.DESKTOP_SESSION || '').toLowerCase();
-  const uri = pathToFileURL(image).href;
+  const uri = 'file://' + image.split('/').map(encodeURIComponent).join('/'); // POSIX path; independent of the host OS
   if (de.includes('kde') || de.includes('plasma')) return [{ file: 'plasma-apply-wallpaperimage', args: [image] }];
   if (de.includes('cinnamon')) return [{ file: 'gsettings', args: ['set', 'org.cinnamon.desktop.background', 'picture-uri', uri] }];
   if (de.includes('mate')) return [{ file: 'gsettings', args: ['set', 'org.mate.background', 'picture-filename', image] }];
