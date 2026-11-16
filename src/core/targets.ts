@@ -7,7 +7,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { EXT_ID, STATE_FILE } from '../shared/types';
-import { defaultLibraryPath } from './library';
+import { resolveDefaultLibrary } from './library';
 
 export interface IdeTarget {
   /** User-data folder name, e.g. "Code", "Antigravity IDE", "Cursor". */
@@ -33,7 +33,7 @@ export function libraryDirFor(userDataDir: string, home = os.homedir()): string 
   } catch {
     /* no settings / unreadable */
   }
-  return defaultLibraryPath();
+  return resolveDefaultLibrary(undefined, home);
 }
 
 export function findIdeTargets(root = appDataRoot(), home = os.homedir()): IdeTarget[] {

@@ -80,6 +80,27 @@ export function defaultLibraryPath(): string {
   return path.join(pics ?? home, 'IDE Wallpapers');
 }
 
+function hasMedia(dir: string): boolean {
+  try {
+    return fs.readdirSync(dir, { withFileTypes: true }).some((e) => e.isFile() && !e.name.startsWith('.') && isSupported(e.name));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Library folder when `wallpaperStudio.libraryPath` is empty. The "automatic" folder can change
+ * under the user (the Pictures folder gets created or redirected, an older version used another
+ * location), which used to make a library full of wallpapers look empty. So: the first candidate
+ * that already holds wallpapers wins; with none, the first candidate is used (new installs).
+ * `preferred` is the folder remembered from last time, if any.
+ */
+export function resolveDefaultLibrary(preferred?: string, home = os.homedir(), auto = defaultLibraryPath()): string {
+  const candidates = [preferred, auto, path.join(home, 'IDE Wallpapers'), path.join(home, 'Pictures', 'IDE Wallpapers')].filter((c): c is string => !!c);
+  const unique = candidates.filter((c, i) => candidates.findIndex((o) => path.resolve(o).toLowerCase() === path.resolve(c).toLowerCase()) === i);
+  return unique.find(hasMedia) ?? (preferred && fs.existsSync(preferred) ? preferred : auto);
+}
+
 export function kindForExt(ext: string): ItemKind | null {
   ext = ext.toLowerCase();
   if (ext === '.gif') return 'gif';

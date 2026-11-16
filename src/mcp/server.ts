@@ -7,7 +7,7 @@ import * as path from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { defaultLibraryPath, importFiles, isSupported, kindForExt } from '../core/library';
+import { resolveDefaultLibrary, importFiles, isSupported, kindForExt } from '../core/library';
 import { downloadToLibrary } from '../core/media';
 import { setDesktopWallpaper } from '../core/desktop';
 import { findIdeTargets } from '../core/targets';
@@ -22,12 +22,12 @@ const text = (s: string, isError = false) => ({ content: [{ type: 'text' as cons
 
 /** The library folder: the first IDE's (they normally share the default one), else the default. */
 function libraryDir() {
-  return findIdeTargets()[0]?.libraryDir ?? defaultLibraryPath();
+  return findIdeTargets()[0]?.libraryDir ?? resolveDefaultLibrary();
 }
 
 function libraryList() {
   const t = findIdeTargets()[0];
-  return act.libraryItems(t?.libraryDir ?? defaultLibraryPath(), t?.storageDir);
+  return act.libraryItems(t?.libraryDir ?? resolveDefaultLibrary(), t?.storageDir);
 }
 
 function forEachIde(fn: (t: ReturnType<typeof findIdeTargets>[number]) => string) {

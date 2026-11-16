@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execFile } from 'node:child_process';
 import {
-  buildItems, defaultLibraryPath, importFiles, mergeMeta, metaKey, pruneCache, readMeta, scanLibrary, writeJsonAtomic,
+  buildItems, importFiles, mergeMeta, metaKey, pruneCache, readMeta, resolveDefaultLibrary, scanLibrary, writeJsonAtomic,
   type ItemMeta, type LibraryMeta, type ScannedFile,
 } from '../core/library';
 import { StateStore, defaultProfileStorage } from '../core/stateStore';
@@ -100,7 +100,7 @@ export class Controller implements vscode.Disposable {
       // Finding the Pictures folder can spawn `reg query` (Windows) synchronously; do it once and
       // keep using that folder (it is where the user's wallpapers are, even if Pictures moves later).
       const cached = this.ctx.globalState.get<string>('defaultLibraryDir');
-      this.libraryDir = cached && fs.existsSync(cached) ? cached : defaultLibraryPath();
+      this.libraryDir = resolveDefaultLibrary(cached);
       if (this.libraryDir !== cached) void this.ctx.globalState.update('defaultLibraryDir', this.libraryDir);
     }
     fs.mkdirSync(this.libraryDir, { recursive: true });

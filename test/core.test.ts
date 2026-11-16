@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as patcher from '../src/core/patcher';
-import { buildItems, ensureServed, gifSize, importFiles, isHeavyGif, mergeMeta, kindForExt, readMeta, scanLibrary, uniqueTarget } from '../src/core/library';
+import { buildItems, ensureServed, gifSize, importFiles, isHeavyGif, mergeMeta, kindForExt, readMeta, resolveDefaultLibrary, scanLibrary, uniqueTarget } from '../src/core/library';
 import { StateStore, defaultProfileStorage } from '../src/core/stateStore';
 import { fileNameFromUrl } from '../src/core/media';
 import { manifestLists, toVscodeFileUrl } from '../src/runtime/url';
@@ -108,6 +108,30 @@ describe('library', () => {
     expect(kindForExt('.webm')).toBe('video');
     expect(kindForExt('.jpeg')).toBe('image');
     expect(kindForExt('.txt')).toBeNull();
+  });
+
+  it('default library: keeps wallpapers found in an older location, new installs get the automatic folder', () => {
+    const home = path.join(tmp, 'home');
+    const auto = path.join(tmp, 'Pictures', 'IDE Wallpapers');
+    const legacy = path.join(home, 'IDE Wallpapers');
+    fs.mkdirSync(auto, { recursive: true });
+    fs.mkdirSync(legacy, { recursive: true });
+    // new install: nothing anywhere → the automatic folder
+    expect(resolveDefaultLibrary(undefined, home, auto)).toBe(auto);
+    // the remembered folder is kept while it exists and nothing else has files
+    expect(resolveDefaultLibrary(auto, home, auto)).toBe(auto);
+    // update scenario: automatic folder is empty, the old one holds wallpapers → use the old one
+    fs.writeFileSync(path.join(legacy, 'a.mp4'), 'mp4');
+    expect(resolveDefaultLibrary(undefined, home, auto)).toBe(legacy);
+    expect(resolveDefaultLibrary(auto, home, auto)).toBe(legacy);
+    // a folder that already has wallpapers wins over later candidates
+    fs.writeFileSync(path.join(auto, 'b.png'), 'png');
+    expect(resolveDefaultLibrary(auto, home, auto)).toBe(auto);
+    // hidden / unsupported files do not count
+    fs.rmSync(path.join(auto, 'b.png'));
+    fs.writeFileSync(path.join(auto, '.x.png'), 'x');
+    fs.writeFileSync(path.join(auto, 'n.txt'), 'x');
+    expect(resolveDefaultLibrary(auto, home, auto)).toBe(legacy);
   });
 
   it('scans, skips hidden/unsupported/empty files, and links non-served formats into the cache', () => {
