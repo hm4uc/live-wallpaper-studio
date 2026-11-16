@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- **Fix: wallpapers missing after an update.** When *Library path* is empty, the automatic folder (`<Pictures>/IDE Wallpapers`, or `~/IDE Wallpapers`) can differ between versions or change when the Pictures folder is created later, so a library full of GIFs and videos could look empty. The extension now keeps using the folder that already holds your wallpapers. New installs are unchanged.
+
 ## 1.3.0
 
 - **Keeps playing when the IDE isn't focused.** GIFs, videos and pixel themes no longer freeze when you switch to another app; they still pause when the IDE is minimized or hidden. *Pause when the IDE is not focused* is now off by default (existing installs are switched once) and can be turned back on in the picker.
