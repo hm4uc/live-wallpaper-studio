@@ -8,7 +8,7 @@
 import { EXT_ID, MSG_TAG, STATE_FILE, normalizeState, type DisplaySettings, type FastMessage, type ThemeSettings, type WallpaperItem, type WallpaperState } from '../shared/types';
 import { resolveActive } from '../shared/rotation';
 import { getTheme, type ThemeInstance } from '../shared/themes';
-import { FILE_URL_PREFIX, toVscodeFileUrl, workspaceKeyFromConfig } from './url';
+import { FILE_URL_PREFIX, manifestLists, toVscodeFileUrl, workspaceKeyFromConfig } from './url';
 
 declare const __RUNTIME_VERSION__: string;
 
@@ -20,6 +20,7 @@ const FADE_MS = 700;
 const POLL_ACTIVE = 400;
 const POLL_IDLE = 1200;
 const POLL_BACKGROUND = 4000;
+const MANIFEST_EVERY = 10000;
 
 function readConfig(): any {
   try {
@@ -57,6 +58,8 @@ function boot() {
   let slot: Slot | null = null;
   let errors = 0;
   let lastError = '';
+  /** The extension was uninstalled (the IDE hasn't restarted yet): show nothing, leave the IDE untouched. */
+  let uninstalled = false;
 
   // ------------------------------------------------------------------ DOM
   const root = document.createElement('div');
@@ -86,12 +89,13 @@ body.ws-behind .monaco-workbench{background-color:transparent !important;}
   function effective(): { display: DisplaySettings; theme: ThemeSettings } {
     const s = state!;
     const display = { ...s.display, ...(fastDisplay?.display ?? {}) };
+    if (uninstalled) display.mode = 'overlay'; // drops the translucent frame
     const theme = { ...s.theme, ...(fastDisplay?.theme ?? {}) };
     return { display, theme };
   }
 
   function activeItem(now: number): WallpaperItem | null {
-    if (!state) return null;
+    if (!state || uninstalled) return null;
     if (fastPreview && fastPreview.until > now && state.enabled) return fastPreview.item;
     return resolveActive(state, now, workspaceKey).item;
   }
@@ -543,12 +547,36 @@ body.ws-behind .monaco-workbench .xterm .xterm-viewport,body.ws-behind .monaco-w
     }
   }
 
+  // Uninstall detection: the extension can't clean up after itself until the IDE restarts,
+  // so watch the extensions.json it recorded. Two misses in a row → off; unreadable → no change.
+  let lastManifestCheck = 0;
+  let misses = 0;
+  async function checkManifest() {
+    if (!state?.manifest || Date.now() - lastManifestCheck < MANIFEST_EVERY) return;
+    lastManifestCheck = Date.now();
+    try {
+      const res = await fetch(toVscodeFileUrl(state.manifest) + '?t=' + Date.now(), { cache: 'no-store' });
+      const listed = res.ok ? manifestLists(await res.text(), EXT_ID) : null;
+      if (listed === null) return;
+      misses = listed ? 0 : misses + 1;
+      const next = misses >= 2;
+      if (next !== uninstalled) {
+        uninstalled = next;
+        fastPreview = null;
+        refresh();
+      }
+    } catch {
+      /* keep the current state */
+    }
+  }
+
   // Adaptive polling: fast right after activity (hotkeys feel instant), relaxed when idle,
   // slow when the window is in the background. Each poll is one tiny local file read.
   let lastActivity = Date.now();
   const bump = () => (lastActivity = Date.now());
   function loop() {
     poll();
+    checkManifest();
     const delay = !focused ? POLL_BACKGROUND : Date.now() - lastActivity < 20000 ? POLL_ACTIVE : POLL_IDLE;
     setTimeout(loop, delay);
   }

@@ -36,7 +36,7 @@
       "activitybar": [
         {
           "id": "wallpaperStudio",
-          "title": "Wallpaper",
+          "title": "%view.picker%",
           "icon": "media/panel-icon.svg"
         }
       ]

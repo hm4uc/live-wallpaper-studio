@@ -165,6 +165,14 @@ export function uninstall(appRoot: string): { changed: boolean; checksumSynced: 
   const changed = clean !== src;
   if (changed) atomicWrite(wb, clean);
   const checksumSynced = syncChecksum(appRoot);
+  // Nothing of ours should stay behind once the IDE is restored.
+  for (const f of [backup, productJsonPath(appRoot) + BACKUP_SUFFIX]) {
+    try {
+      fs.rmSync(f, { force: true });
+    } catch {
+      /* read-only install: harmless leftover */
+    }
+  }
   return { changed, checksumSynced };
 }
 

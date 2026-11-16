@@ -72,7 +72,7 @@ If you use the `shalldie.background` extension, its image settings are moved int
 VS Code doesn't let extensions draw on the main window. Live Wallpaper Studio adds a small script (~22 KB) to the IDE's UI file **once**. The script contains no image paths: it only reads a settings file (`state.json`) and draws accordingly, so changing wallpapers never touches the IDE's files again.
 
 - The checksum in `product.json` is updated too, so the IDE does **not** report "installation corrupt" (after the first restart).
-- The original file is backed up (`*.wallpaper-studio.bak`). The command `Wallpaper: Remove Runtime and Restore the IDE` puts the IDE back exactly as it was, and uninstalling the extension does the same automatically.
+- The original file is backed up (`*.wallpaper-studio.bak`). The command `Wallpaper: Remove Runtime and Restore the IDE` puts the IDE back exactly as it was, and uninstalling the extension does the same automatically: the wallpaper turns off within a few seconds, and the files are restored the next time you quit and reopen the IDE.
 - When the IDE **updates itself**, the patch is lost. The extension then offers to *Re-apply* it (1 click).
 
 ### Write permissions by OS
